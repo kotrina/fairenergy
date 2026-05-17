@@ -88,6 +88,7 @@ export async function extractBillData(file: File): Promise<BillData> {
     throw new Error("La IA no devolvió texto")
   }
 
-  const parsed = JSON.parse(textBlock.text) as BillData
+  const raw = textBlock.text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
+  const parsed = JSON.parse(raw) as BillData
   return parsed
 }
