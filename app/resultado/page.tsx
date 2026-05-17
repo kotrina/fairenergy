@@ -82,20 +82,35 @@ const COMERCIALIZADORAS_REFERENCIA = [
   { nombre: "TotalEnergies Marketing España", telefono: "900 373 753" },
 ]
 
+type BillData = {
+  termino_fijo_eur_dia: number | null
+  termino_variable_eur_kwh: number | null
+  consumo_kwh: number | null
+  consumo_anual_estimado_kwh: number | null
+  comercializadora: string | null
+  producto: string | null
+  descuentos: { descripcion: string; porcentaje: number }[]
+}
+
 export default function ResultadoPage() {
   const [resultado, setResultado] = useState<AnalysisResult | null>(null)
+  const [factura, setFactura] = useState<BillData | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const raw = sessionStorage.getItem("fairenergy_resultado")
+    const rawFactura = sessionStorage.getItem("fairenergy_factura")
     if (!raw) {
       router.push("/")
       return
     }
     try {
       const parsed = JSON.parse(raw) as AnalysisResult
-      // Schedule outside the effect body to avoid synchronous setState warning
-      setTimeout(() => setResultado(parsed), 0)
+      const parsedFactura = rawFactura ? JSON.parse(rawFactura) as BillData : null
+      setTimeout(() => {
+        setResultado(parsed)
+        setFactura(parsedFactura)
+      }, 0)
     } catch {
       router.push("/")
     }
@@ -130,6 +145,9 @@ export default function ResultadoPage() {
   const frase = getFrase(resultado, verdict)
   const tur = resultado.tur_referencia
 
+  const facturaVariable = factura?.termino_variable_eur_kwh ?? null
+  const facturaFijo = factura?.termino_fijo_eur_dia ?? null
+
   return (
     <main className="min-h-screen bg-white">
       <div className="max-w-2xl mx-auto px-6 py-12 space-y-8">
@@ -163,7 +181,9 @@ export default function ResultadoPage() {
               <tbody className="divide-y divide-gray-100">
                 <tr>
                   <td className="py-3 text-gray-800">Término variable (€/kWh)</td>
-                  <td className="py-3 text-right font-medium">—</td>
+                  <td className="py-3 text-right font-medium text-gray-900">
+                    {facturaVariable !== null ? facturaVariable.toFixed(6) : "—"}
+                  </td>
                   <td className="py-3 text-right text-green-700">{tur.variable_eur_kwh.toFixed(6)}</td>
                   <td className={`py-3 text-right font-bold ${resultado.desviacion_variable_pct > 0 ? "text-red-700" : "text-green-700"}`}>
                     {resultado.desviacion_variable_pct > 0 ? "+" : ""}{resultado.desviacion_variable_pct.toFixed(1)}%
@@ -171,7 +191,9 @@ export default function ResultadoPage() {
                 </tr>
                 <tr>
                   <td className="py-3 text-gray-800">Término fijo (€/día)</td>
-                  <td className="py-3 text-right font-medium">—</td>
+                  <td className="py-3 text-right font-medium text-gray-900">
+                    {facturaFijo !== null ? facturaFijo.toFixed(6) : "—"}
+                  </td>
                   <td className="py-3 text-right text-green-700">{tur.fijo_eur_dia.toFixed(6)}</td>
                   <td className={`py-3 text-right font-bold ${resultado.desviacion_fijo_pct > 0 ? "text-red-700" : "text-green-700"}`}>
                     {resultado.desviacion_fijo_pct > 0 ? "+" : ""}{resultado.desviacion_fijo_pct.toFixed(1)}%

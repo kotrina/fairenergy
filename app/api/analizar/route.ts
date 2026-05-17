@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const resultado = analyzeGasBill(billData, turData)
 
-    return NextResponse.json({ success: true, data: resultado })
+    return NextResponse.json({ success: true, data: resultado, factura: billData })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido"
     return NextResponse.json({ success: false, error: message }, { status: 500 })
