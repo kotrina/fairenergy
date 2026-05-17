@@ -24,9 +24,10 @@ export default function HomePage() {
       form.append("factura", file)
       form.append("tipo_energia", "gas")
       const res = await fetch("/api/analizar", { method: "POST", body: form })
-      const data = await res.json() as { success: boolean; data?: unknown; error?: string }
+      const data = await res.json() as { success: boolean; data?: unknown; factura?: unknown; error?: string }
       if (!data.success) throw new Error(data.error ?? "Error desconocido")
       sessionStorage.setItem("fairenergy_resultado", JSON.stringify(data.data))
+      sessionStorage.setItem("fairenergy_factura", JSON.stringify(data.factura))
       router.push("/resultado")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al analizar la factura")
@@ -64,9 +65,10 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      const data = await res.json() as { success: boolean; data?: unknown; error?: string }
+      const data = await res.json() as { success: boolean; data?: unknown; factura?: unknown; error?: string }
       if (!data.success) throw new Error(data.error ?? "Error desconocido")
       sessionStorage.setItem("fairenergy_resultado", JSON.stringify(data.data))
+      sessionStorage.setItem("fairenergy_factura", JSON.stringify(data.factura))
       router.push("/resultado")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al analizar los datos")
