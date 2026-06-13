@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       }
 
       const billData = await extractBillData(factura)
-      return handleGas(billData)
+      return await handleGas(billData)
     }
 
     // JSON manual
@@ -47,13 +47,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function handleGas(billData: BillData) {
+async function handleGas(billData: BillData) {
   const fechaReferencia = billData.fecha_inicio ?? billData.fecha_fin ?? new Date().toISOString().slice(0, 10)
   const consumoAnual = billData.consumo_anual_estimado_kwh ?? estimarConsumoAnualGas(billData) ?? 5000
   const turData = getTurForDate(fechaReferencia, consumoAnual)
   const resultado = analyzeGasBill(billData, turData)
 
-  registrarAnalisis({
+  await registrarAnalisis({
     tipo_energia: "gas",
     mercado_libre: !resultado.esta_en_tur,
     precio_usuario_eur_kwh: billData.termino_variable_eur_kwh,
@@ -72,7 +72,7 @@ async function handleElectric(billData: ElectricBillData) {
     : null
   const resultado = analyzeElectricBill(billData, pvpcData)
 
-  registrarAnalisis({
+  await registrarAnalisis({
     tipo_energia: "electricidad",
     mercado_libre: !resultado.esta_en_pvpc,
     precio_usuario_eur_kwh: billData.termino_energia_eur_kwh,
@@ -93,12 +93,11 @@ type AnalisisRow = {
   ahorro_mensual_eur: number
 }
 
-function registrarAnalisis(row: AnalisisRow): void {
+async function registrarAnalisis(row: AnalisisRow): Promise<void> {
   const db = getSupabaseServer()
   if (!db) return
-  db.from("analisis").insert(row).then(({ error }) => {
-    if (error) console.error("[analytics] INSERT failed:", error.message)
-  })
+  const { error } = await db.from("analisis").insert(row)
+  if (error) console.error("[analytics] INSERT failed:", error.message)
 }
 
 function estimarConsumoAnualGas(billData: BillData): number | null {
