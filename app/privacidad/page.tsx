@@ -16,9 +16,9 @@ export default function PrivacidadPage() {
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-gray-900">1. Responsable del tratamiento</h2>
           <ul className="list-disc pl-5 space-y-1 text-sm">
-            <li><strong>Responsable:</strong> [NOMBRE COMPLETO O RAZÓN SOCIAL]</li>
-            <li><strong>NIF / CIF:</strong> [NIF]</li>
-            <li><strong>Domicilio:</strong> [DIRECCIÓN COMPLETA], España</li>
+            <li><strong>Responsable:</strong> Raul Cotrina Secas</li>
+            <li><strong>NIF / CIF:</strong> 09012736W</li>
+            <li><strong>Domicilio:</strong> Avenida de la Coruña 37, San Sebastián de los Reyes, Madrid, España</li>
             <li><strong>Contacto:</strong> hola@fairenergy.es</li>
           </ul>
         </section>

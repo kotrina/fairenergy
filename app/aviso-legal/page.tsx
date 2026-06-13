@@ -21,9 +21,9 @@ export default function AvisoLegalPage() {
             identificativos del titular de este sitio web:
           </p>
           <ul className="list-disc pl-5 space-y-1 text-sm">
-            <li><strong>Titular:</strong> [NOMBRE COMPLETO O RAZÓN SOCIAL]</li>
-            <li><strong>NIF / CIF:</strong> [NIF]</li>
-            <li><strong>Domicilio:</strong> [DIRECCIÓN COMPLETA], España</li>
+            <li><strong>Titular:</strong> Raul Cotrina Secas</li>
+            <li><strong>NIF / CIF:</strong> 09012736W</li>
+            <li><strong>Domicilio:</strong> Avenida de la Coruña 37, San Sebastián de los Reyes, Madrid, España</li>
             <li><strong>Correo electrónico de contacto:</strong> hola@fairenergy.es</li>
           </ul>
         </section>
