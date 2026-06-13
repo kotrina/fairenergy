@@ -2,6 +2,7 @@
 
 import { useState, useRef, FormEvent } from "react"
 import { useRouter } from "next/navigation"
+import Nav from "./components/Nav"
 
 type Tab = "factura" | "manual"
 type TipoEnergia = "gas" | "electricidad"
@@ -44,11 +45,7 @@ export default function HomePage() {
     setLoading(true)
     setError(null)
     const fd = new FormData(e.currentTarget)
-
-    const body = tipoEnergia === "gas"
-      ? buildGasBody(fd)
-      : buildElectricBody(fd)
-
+    const body = tipoEnergia === "gas" ? buildGasBody(fd) : buildElectricBody(fd)
     try {
       const res = await fetch("/api/analizar", {
         method: "POST",
@@ -83,73 +80,57 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-white text-gray-900">
+      <Nav />
+
       {/* Hero */}
-      <section className="max-w-3xl mx-auto px-6 pt-16 pb-10 text-center">
+      <section className="max-w-2xl mx-auto px-6 pt-12 pb-8 text-center">
         <h1 className="text-4xl font-bold leading-tight text-gray-900 mb-4">
-          ¿Te están cobrando de más en tu factura de energía?
+          ¿Te están cobrando de más<br className="hidden sm:block" /> en tu factura de energía?
         </h1>
-        <p className="text-xl text-gray-700 max-w-xl mx-auto">
-          Comparamos tu factura con la tarifa oficial del Gobierno español y te decimos
-          cuánto puedes ahorrar, en euros y en lenguaje claro.
+        <p className="text-lg text-gray-600 max-w-md mx-auto leading-relaxed">
+          Sube tu factura y en segundos sabrás cuánto puedes ahorrar,
+          en euros y sin tecnicismos.
         </p>
       </section>
 
-      <section className="max-w-2xl mx-auto px-6 pb-16">
+      <section className="max-w-xl mx-auto px-6 pb-16">
+
         {/* Selector gas / electricidad */}
-        <div className="flex gap-3 mb-8">
-          <button
+        <div
+          className="flex p-1 rounded-xl mb-8"
+          style={{ background: "#E6F1FB" }}
+        >
+          <EnergyButton
+            active={tipoEnergia === "gas"}
             onClick={() => handleTipoEnergia("gas")}
-            className={`flex-1 py-3 px-4 rounded-xl text-lg font-semibold border-2 transition-colors ${
-              tipoEnergia === "gas"
-                ? "border-blue-700 bg-blue-700 text-white"
-                : "border-gray-300 text-gray-700 hover:border-gray-400"
-            }`}
-          >
-            Gas natural
-          </button>
-          <button
+            icon={<FlameIcon active={tipoEnergia === "gas"} />}
+            label="Gas natural"
+          />
+          <EnergyButton
+            active={tipoEnergia === "electricidad"}
             onClick={() => handleTipoEnergia("electricidad")}
-            className={`flex-1 py-3 px-4 rounded-xl text-lg font-semibold border-2 transition-colors ${
-              tipoEnergia === "electricidad"
-                ? "border-blue-700 bg-blue-700 text-white"
-                : "border-gray-300 text-gray-700 hover:border-gray-400"
-            }`}
-          >
-            Electricidad
-          </button>
+            icon={<BoltIcon active={tipoEnergia === "electricidad"} />}
+            label="Electricidad"
+          />
         </div>
 
-        {/* Tabs subir / manual */}
-        <div className="flex border-b border-gray-300 mb-8">
-          <button
-            onClick={() => setTab("factura")}
-            className={`px-6 py-3 text-lg font-medium border-b-2 transition-colors ${
-              tab === "factura"
-                ? "border-blue-700 text-blue-700"
-                : "border-transparent text-gray-600 hover:text-gray-900"
-            }`}
-          >
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 mb-8">
+          <TabButton active={tab === "factura"} onClick={() => setTab("factura")}>
             Subir mi factura
-          </button>
-          <button
-            onClick={() => setTab("manual")}
-            className={`px-6 py-3 text-lg font-medium border-b-2 transition-colors ${
-              tab === "manual"
-                ? "border-blue-700 text-blue-700"
-                : "border-transparent text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Introducir datos manualmente
-          </button>
+          </TabButton>
+          <TabButton active={tab === "manual"} onClick={() => setTab("manual")}>
+            Datos manuales
+          </TabButton>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-300 rounded-lg text-red-800 text-lg">
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-800 text-base">
             {error}
           </div>
         )}
 
-        {/* Tab A: Subir factura */}
+        {/* Tab A: subir factura */}
         {tab === "factura" && (
           <form onSubmit={handleFileSubmit}>
             <div
@@ -157,9 +138,11 @@ export default function HomePage() {
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
               onClick={() => fileRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-12 text-center cursor-pointer transition-colors ${
-                dragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-gray-400"
-              }`}
+              className="rounded-xl p-10 text-center cursor-pointer transition-all"
+              style={{
+                background: dragging ? "#E6F1FB" : "#F5FAFF",
+                border: `1.5px dashed ${dragging ? "#378ADD" : "#85B7EB"}`,
+              }}
             >
               <input
                 ref={fileRef}
@@ -169,30 +152,38 @@ export default function HomePage() {
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               />
               {file ? (
-                <p className="text-xl text-gray-900 font-medium">{file.name}</p>
+                <p className="text-lg font-medium text-gray-900">{file.name}</p>
               ) : (
                 <>
-                  <p className="text-xl text-gray-700 mb-2">
-                    Arrastra tu factura aquí o haz clic para seleccionarla
+                  <UploadIcon />
+                  <p className="text-base font-medium mt-3 mb-1" style={{ color: "#185FA5" }}>
+                    Arrastra tu factura aquí
                   </p>
-                  <p className="text-base text-gray-500">PDF, JPEG o PNG</p>
+                  <p className="text-sm" style={{ color: "#378ADD" }}>
+                    PDF, JPEG o PNG · o haz clic para seleccionar
+                  </p>
                 </>
               )}
             </div>
-            <p className="mt-4 text-base text-gray-600 text-center">
+
+            <p className="mt-3 text-sm text-gray-500 text-center flex items-center justify-center gap-1.5">
+              <LockIcon />
               Tu factura se analiza y se descarta. No la guardamos.
             </p>
+
             <button
               type="submit"
               disabled={!file || loading}
-              className="mt-6 w-full py-4 text-xl font-semibold bg-blue-700 text-white rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="mt-5 w-full py-4 text-base font-semibold text-white rounded-xl flex items-center justify-center gap-2 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: loading || !file ? "#378ADD" : "#185FA5" }}
             >
+              <SearchIcon />
               {loading ? "Analizando…" : "Analizar mi factura"}
             </button>
           </form>
         )}
 
-        {/* Tab B: Formulario manual */}
+        {/* Tab B: manual */}
         {tab === "manual" && (
           tipoEnergia === "gas"
             ? <GasManualForm onSubmit={handleManualSubmit} loading={loading} />
@@ -200,103 +191,198 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 py-8 text-center text-base text-gray-600">
+      <footer className="border-t border-gray-200 py-6 text-center text-sm text-gray-500">
         <p>
-          <a
-            href="https://comparador.cnmc.gob.es"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-700 underline hover:text-blue-900"
-          >
-            Comparador oficial de la CNMC
+          Datos oficiales:{" "}
+          <a href="https://comparador.cnmc.gob.es" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">
+            Comparador CNMC
+          </a>
+          {" · "}
+          <a href="https://api.esios.ree.es" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">
+            ESIOS / REE
           </a>
         </p>
-        <p className="mt-2">FairEnergy es una herramienta independiente y sin ánimo de lucro.</p>
+        <p className="mt-1">FairEnergy es independiente y sin ánimo de lucro.</p>
       </footer>
     </main>
   )
 }
 
+// ─── Sub-components ────────────────────────────────────────────────────────────
+
+function EnergyButton({ active, onClick, icon, label }: {
+  active: boolean; onClick: () => void; icon: React.ReactNode; label: string
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all"
+      style={active
+        ? { background: "white", color: "#185FA5", boxShadow: "0 1px 4px rgba(0,0,0,.08)" }
+        : { color: "#378ADD" }
+      }
+    >
+      {icon}
+      {label}
+    </button>
+  )
+}
+
+function TabButton({ active, onClick, children }: {
+  active: boolean; onClick: () => void; children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="px-5 py-3 text-base font-medium border-b-2 transition-colors"
+      style={active
+        ? { borderColor: "#378ADD", color: "#185FA5" }
+        : { borderColor: "transparent", color: "#6b7280" }
+      }
+    >
+      {children}
+    </button>
+  )
+}
+
 function GasManualForm({ onSubmit, loading }: { onSubmit: (e: FormEvent<HTMLFormElement>) => void; loading: boolean }) {
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className="space-y-5">
       <input type="hidden" name="tipo_energia" value="gas" />
       <Field label="¿Cuál es tu compañía de gas?" name="comercializadora" type="text" placeholder="Ej: Naturgy, Endesa, Iberdrola…" />
-      <Field label="¿Cuál es el nombre de tu tarifa o producto?" name="producto" type="text" placeholder="Ej: Gas Plano, Tarifa Estable…" />
+      <Field label="Nombre de tu tarifa o producto" name="producto" type="text" placeholder="Ej: Gas Plano, Tarifa Estable…" />
       <div>
-        <label className="block text-lg font-medium text-gray-800 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
           ¿Estás en mercado libre o en tarifa regulada?
         </label>
-        <select
-          name="es_mercado_libre"
-          required
-          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <select name="es_mercado_libre" required className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2" style={{ focusRingColor: "#378ADD" }}>
           <option value="">Selecciona una opción</option>
           <option value="mercado_libre">Mercado libre</option>
           <option value="regulada">Tarifa regulada (TUR)</option>
         </select>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Fecha de inicio del período" name="fecha_inicio" type="date" required />
-        <Field label="Fecha de fin del período" name="fecha_fin" type="date" required />
+        <Field label="Fecha de inicio" name="fecha_inicio" type="date" required />
+        <Field label="Fecha de fin" name="fecha_fin" type="date" required />
       </div>
-      <Field label="¿Cuántos kWh consumiste en este período?" name="consumo_kwh" type="number" placeholder="Ej: 320" step="0.01" required />
-      <Field label="¿Cuánto pagas de término fijo al día? (€/día)" name="termino_fijo_eur_dia" type="number" placeholder="Ej: 0.15" step="0.000001" required />
-      <Field label="¿Cuánto pagas por cada kWh consumido? (€/kWh)" name="termino_variable_eur_kwh" type="number" placeholder="Ej: 0.075" step="0.000001" required />
-      <Field label="¿Tienes algún descuento? ¿Qué porcentaje? (opcional)" name="descuento_pct" type="number" placeholder="Ej: 5" step="0.1" />
-      <Field label="Presión del suministro en bar (opcional)" name="presion_bar" type="number" placeholder="Ej: 0.05" step="0.01" />
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-4 text-xl font-semibold bg-blue-700 text-white rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {loading ? "Analizando…" : "Analizar mis datos"}
-      </button>
+      <Field label="kWh consumidos en el período" name="consumo_kwh" type="number" placeholder="Ej: 320" step="0.01" required />
+      <Field label="Término fijo (€/día)" name="termino_fijo_eur_dia" type="number" placeholder="Ej: 0.15" step="0.000001" required />
+      <Field label="Término variable (€/kWh)" name="termino_variable_eur_kwh" type="number" placeholder="Ej: 0.075" step="0.000001" required />
+      <Field label="Descuento (%) — opcional" name="descuento_pct" type="number" placeholder="Ej: 5" step="0.1" />
+      <Field label="Presión en bar — opcional" name="presion_bar" type="number" placeholder="Ej: 0.05" step="0.01" />
+      <SubmitButton loading={loading} label="Analizar mis datos" />
     </form>
   )
 }
 
 function ElectricManualForm({ onSubmit, loading }: { onSubmit: (e: FormEvent<HTMLFormElement>) => void; loading: boolean }) {
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
+    <form onSubmit={onSubmit} className="space-y-5">
       <input type="hidden" name="tipo_energia" value="electricidad" />
       <Field label="¿Cuál es tu compañía eléctrica?" name="comercializadora" type="text" placeholder="Ej: Endesa, Iberdrola, Naturgy…" />
-      <Field label="¿Cuál es el nombre de tu tarifa o producto?" name="producto" type="text" placeholder="Ej: Tarifa Nocturna, Tempo Libre…" />
+      <Field label="Nombre de tu tarifa o producto" name="producto" type="text" placeholder="Ej: Tarifa Nocturna, Tempo Libre…" />
       <div>
-        <label className="block text-lg font-medium text-gray-800 mb-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1.5">
           ¿Estás en mercado libre o en PVPC?
         </label>
-        <select
-          name="es_mercado_libre"
-          required
-          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <select name="es_mercado_libre" required className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2">
           <option value="">Selecciona una opción</option>
           <option value="mercado_libre">Mercado libre</option>
           <option value="regulada">PVPC (tarifa regulada)</option>
         </select>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <Field label="Fecha de inicio del período" name="fecha_inicio" type="date" required />
-        <Field label="Fecha de fin del período" name="fecha_fin" type="date" required />
+        <Field label="Fecha de inicio" name="fecha_inicio" type="date" required />
+        <Field label="Fecha de fin" name="fecha_fin" type="date" required />
       </div>
-      <Field label="¿Cuántos kWh consumiste en este período?" name="consumo_kwh" type="number" placeholder="Ej: 180" step="0.01" required />
+      <Field label="kWh consumidos en el período" name="consumo_kwh" type="number" placeholder="Ej: 180" step="0.01" required />
       <Field label="Potencia contratada (kW)" name="potencia_contratada_kw" type="number" placeholder="Ej: 3.45" step="0.01" />
       <Field label="Término de potencia (€/kW/día)" name="termino_potencia_eur_kw_dia" type="number" placeholder="Ej: 0.104" step="0.000001" />
       <Field label="Precio de la energía (€/kWh)" name="termino_energia_eur_kwh" type="number" placeholder="Ej: 0.18" step="0.000001" required />
-      <Field label="¿Tienes algún descuento? ¿Qué porcentaje? (opcional)" name="descuento_pct" type="number" placeholder="Ej: 5" step="0.1" />
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full py-4 text-xl font-semibold bg-blue-700 text-white rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {loading ? "Analizando…" : "Analizar mis datos"}
-      </button>
+      <Field label="Descuento (%) — opcional" name="descuento_pct" type="number" placeholder="Ej: 5" step="0.1" />
+      <SubmitButton loading={loading} label="Analizar mis datos" />
     </form>
   )
 }
+
+function SubmitButton({ loading, label }: { loading: boolean; label: string }) {
+  return (
+    <button
+      type="submit"
+      disabled={loading}
+      className="w-full py-4 text-base font-semibold text-white rounded-xl flex items-center justify-center gap-2 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+      style={{ background: "#185FA5" }}
+    >
+      <SearchIcon />
+      {loading ? "Analizando…" : label}
+    </button>
+  )
+}
+
+function Field({ label, name, type, placeholder, step, required }: {
+  label: string; name: string; type: string; placeholder?: string; step?: string; required?: boolean
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1.5">{label}</label>
+      <input
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        step={step}
+        required={required}
+        className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent"
+      />
+    </div>
+  )
+}
+
+// ─── Icons ─────────────────────────────────────────────────────────────────────
+
+function FlameIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={active ? "#378ADD" : "#378ADD"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M8.5 14.5A2.5 2.5 0 0011 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 11-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 002.5 3z"/>
+    </svg>
+  )
+}
+
+function BoltIcon({ active }: { active?: boolean }) {
+  const color = active !== undefined ? (active ? "#378ADD" : "#378ADD") : "white"
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+    </svg>
+  )
+}
+
+function UploadIcon() {
+  return (
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#378ADD" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="mx-auto">
+      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+    </svg>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+    </svg>
+  )
+}
+
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+  )
+}
+
+// ─── Form data helpers ──────────────────────────────────────────────────────────
 
 function buildGasBody(fd: FormData) {
   const descuentoPct = fd.get("descuento_pct")
@@ -336,26 +422,6 @@ function buildElectricBody(fd: FormData) {
     descuentos: descuentoPct ? [{ descripcion: "Descuento comercial", porcentaje: Number(descuentoPct) }] : [],
     importe_total: null,
   }
-}
-
-function Field({
-  label, name, type, placeholder, step, required,
-}: {
-  label: string; name: string; type: string; placeholder?: string; step?: string; required?: boolean
-}) {
-  return (
-    <div>
-      <label className="block text-lg font-medium text-gray-800 mb-2">{label}</label>
-      <input
-        name={name}
-        type={type}
-        placeholder={placeholder}
-        step={step}
-        required={required}
-        className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-    </div>
-  )
 }
 
 function parseNum(val: FormDataEntryValue | null): number | null {
