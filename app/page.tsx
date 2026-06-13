@@ -257,7 +257,7 @@ function GasManualForm({ onSubmit, loading }: { onSubmit: (e: FormEvent<HTMLForm
         <label className="block text-sm font-medium text-gray-700 mb-1.5">
           ¿Estás en mercado libre o en tarifa regulada?
         </label>
-        <select name="es_mercado_libre" required className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2" style={{ focusRingColor: "#378ADD" }}>
+        <select name="es_mercado_libre" required className="w-full border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 focus:outline-none focus:ring-2" >
           <option value="">Selecciona una opción</option>
           <option value="mercado_libre">Mercado libre</option>
           <option value="regulada">Tarifa regulada (TUR)</option>
