@@ -172,7 +172,10 @@ function GasResultado({ resultado, factura }: { resultado: GasAnalysisResult; fa
       ahorroMensual={resultado.ahorro_mensual_estimado_eur}
       ahorroAnual={resultado.ahorro_anual_estimado_eur}
     >
-      {tur && (
+      {tur && resultado.esta_en_tur && (
+        <TurContextCard tur={tur} tramo={resultado.tramo_tur} />
+      )}
+      {tur && !resultado.esta_en_tur && (
         <CompTable titulo={`Comparativa con la TUR (${resultado.tramo_tur})`} rows={[
           {
             concepto: "Variable (€/kWh)",
@@ -216,30 +219,19 @@ function ElectricResultado({ resultado, factura }: { resultado: ElectricAnalysis
       ahorroMensual={resultado.ahorro_mensual_estimado_eur}
       ahorroAnual={resultado.ahorro_anual_estimado_eur}
     >
-      {pvpc && (
+      {pvpc && resultado.esta_en_pvpc && (
+        <PvpcContextCard pvpc={pvpc} tuPrecio={factura?.termino_energia_eur_kwh ?? null} />
+      )}
+      {pvpc && !resultado.esta_en_pvpc && (
         <CompTable
           titulo="Comparativa con el PVPC"
-          subtitulo={`Precio medio real del período ${pvpc.fecha_inicio} → ${pvpc.fecha_fin} · ${pvpc.zona}`}
-          rows={[
-            {
-              concepto: "Energía (€/kWh)",
-              tuFactura: factura?.termino_energia_eur_kwh?.toFixed(5) ?? "—",
-              referencia: pvpc.media_eur_kwh.toFixed(5),
-              diferencia: desv,
-            },
-            {
-              concepto: "Mínimo PVPC",
-              tuFactura: "—",
-              referencia: pvpc.min_eur_kwh.toFixed(5),
-              diferencia: null,
-            },
-            {
-              concepto: "Máximo PVPC",
-              tuFactura: "—",
-              referencia: pvpc.max_eur_kwh.toFixed(5),
-              diferencia: null,
-            },
-          ]}
+          subtitulo={`Precio medio real · ${pvpc.fecha_inicio} → ${pvpc.fecha_fin} · ${pvpc.zona}`}
+          rows={[{
+            concepto: "Energía (€/kWh)",
+            tuFactura: factura?.termino_energia_eur_kwh?.toFixed(5) ?? "—",
+            referencia: pvpc.media_eur_kwh.toFixed(5),
+            diferencia: desv,
+          }]}
         />
       )}
       {!resultado.esta_en_pvpc && <QuePuedoHacer comercializadoras={COMERCIALIZADORAS_ELECTRIC} tarifa="PVPC" />}
@@ -395,6 +387,68 @@ function QuePuedoHacer({ comercializadoras, tarifa }: {
         >
           Ver comparador oficial de la CNMC →
         </a>
+      </div>
+    </div>
+  )
+}
+
+function TurContextCard({ tur, tramo }: {
+  tur: { fijo_eur_dia: number; variable_eur_kwh: number; entrada: { vigente_desde: string; vigente_hasta: string; fuente: string } }
+  tramo: string | null
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
+        <h2 className="text-base font-semibold text-gray-900">Tu tarifa regulada ({tramo})</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Vigente desde {tur.entrada.vigente_desde} · {tur.entrada.fuente}
+        </p>
+      </div>
+      <div className="divide-y divide-gray-50">
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-600">Término variable</span>
+          <span className="text-sm font-semibold text-gray-900">{tur.variable_eur_kwh.toFixed(6)} €/kWh</span>
+        </div>
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-600">Término fijo</span>
+          <span className="text-sm font-semibold text-gray-900">{tur.fijo_eur_dia.toFixed(6)} €/día</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PvpcContextCard({ pvpc, tuPrecio }: {
+  pvpc: { fecha_inicio: string; fecha_fin: string; zona: string; media_eur_kwh: number; min_eur_kwh: number; max_eur_kwh: number }
+  tuPrecio: number | null
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
+        <h2 className="text-base font-semibold text-gray-900">Precios PVPC de tu período</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          {pvpc.fecha_inicio} → {pvpc.fecha_fin} · {pvpc.zona}
+        </p>
+      </div>
+      <div className="divide-y divide-gray-50">
+        {tuPrecio !== null && (
+          <div className="flex justify-between items-center px-5 py-3">
+            <span className="text-sm text-gray-600">Tu precio en factura</span>
+            <span className="text-sm font-semibold text-gray-900">{tuPrecio.toFixed(5)} €/kWh</span>
+          </div>
+        )}
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-600">Precio medio del período</span>
+          <span className="text-sm font-semibold text-gray-900">{pvpc.media_eur_kwh.toFixed(5)} €/kWh</span>
+        </div>
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-500 text-xs">Precio más bajo del período</span>
+          <span className="text-xs text-gray-500">{pvpc.min_eur_kwh.toFixed(5)} €/kWh</span>
+        </div>
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-500 text-xs">Precio más alto del período</span>
+          <span className="text-xs text-gray-500">{pvpc.max_eur_kwh.toFixed(5)} €/kWh</span>
+        </div>
       </div>
     </div>
   )
