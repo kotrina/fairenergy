@@ -7,7 +7,7 @@
 | Variable | Descripción | Requerida ahora |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | API key de Anthropic para OCR con Claude | Sí |
-| `ESIOS_API_KEY` | Token ESIOS de REE (electricidad, futuro) | No |
+| `ESIOS_API_KEY` | Token ESIOS de REE para precios PVPC (electricidad) | Sí (electricidad) |
 
 ## Vercel
 
