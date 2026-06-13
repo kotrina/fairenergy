@@ -9,7 +9,10 @@ import path from "path"
 
 const ESIOS_BASE = "https://api.esios.ree.es"
 const INDICATOR_PVPC = 1001
-const CACHE_DIR = path.join(process.cwd(), "data", "cache")
+// En Vercel el filesystem es de solo lectura salvo /tmp
+const CACHE_DIR = process.env.VERCEL
+  ? "/tmp/pvpc-cache"
+  : path.join(process.cwd(), "data", "cache")
 
 export type PvpcZona = "Península" | "Canarias" | "Baleares" | "Ceuta" | "Melilla"
 
