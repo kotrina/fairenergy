@@ -4,9 +4,11 @@ import { useState, useRef, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 
 type Tab = "factura" | "manual"
+type TipoEnergia = "gas" | "electricidad"
 
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("factura")
+  const [tipoEnergia, setTipoEnergia] = useState<TipoEnergia>("gas")
   const [dragging, setDragging] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
@@ -22,10 +24,11 @@ export default function HomePage() {
     try {
       const form = new FormData()
       form.append("factura", file)
-      form.append("tipo_energia", "gas")
+      form.append("tipo_energia", tipoEnergia)
       const res = await fetch("/api/analizar", { method: "POST", body: form })
-      const data = await res.json() as { success: boolean; data?: unknown; factura?: unknown; error?: string }
+      const data = await res.json() as { success: boolean; tipo_energia?: string; data?: unknown; factura?: unknown; error?: string }
       if (!data.success) throw new Error(data.error ?? "Error desconocido")
+      sessionStorage.setItem("fairenergy_tipo_energia", data.tipo_energia ?? tipoEnergia)
       sessionStorage.setItem("fairenergy_resultado", JSON.stringify(data.data))
       sessionStorage.setItem("fairenergy_factura", JSON.stringify(data.factura))
       router.push("/resultado")
@@ -41,32 +44,20 @@ export default function HomePage() {
     setLoading(true)
     setError(null)
     const fd = new FormData(e.currentTarget)
-    const descuentoPct = fd.get("descuento_pct")
-    const body = {
-      tipo_energia: "gas",
-      comercializadora: fd.get("comercializadora") as string || null,
-      producto: fd.get("producto") as string || null,
-      es_mercado_libre: fd.get("es_mercado_libre") === "mercado_libre",
-      fecha_inicio: fd.get("fecha_inicio") as string || null,
-      fecha_fin: fd.get("fecha_fin") as string || null,
-      dias_facturados: calcularDias(fd.get("fecha_inicio") as string, fd.get("fecha_fin") as string),
-      consumo_kwh: parseNum(fd.get("consumo_kwh")),
-      consumo_anual_estimado_kwh: null,
-      termino_fijo_eur_dia: parseNum(fd.get("termino_fijo_eur_dia")),
-      termino_variable_eur_kwh: parseNum(fd.get("termino_variable_eur_kwh")),
-      presion_bar: parseNum(fd.get("presion_bar")),
-      descuentos: descuentoPct ? [{ descripcion: "Descuento comercial", porcentaje: Number(descuentoPct) }] : [],
-      importe_total: null,
-      peaje_acceso: null,
-    }
+
+    const body = tipoEnergia === "gas"
+      ? buildGasBody(fd)
+      : buildElectricBody(fd)
+
     try {
       const res = await fetch("/api/analizar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       })
-      const data = await res.json() as { success: boolean; data?: unknown; factura?: unknown; error?: string }
+      const data = await res.json() as { success: boolean; tipo_energia?: string; data?: unknown; factura?: unknown; error?: string }
       if (!data.success) throw new Error(data.error ?? "Error desconocido")
+      sessionStorage.setItem("fairenergy_tipo_energia", data.tipo_energia ?? tipoEnergia)
       sessionStorage.setItem("fairenergy_resultado", JSON.stringify(data.data))
       sessionStorage.setItem("fairenergy_factura", JSON.stringify(data.factura))
       router.push("/resultado")
@@ -84,12 +75,18 @@ export default function HomePage() {
     if (dropped) setFile(dropped)
   }
 
+  function handleTipoEnergia(tipo: TipoEnergia) {
+    setTipoEnergia(tipo)
+    setFile(null)
+    setError(null)
+  }
+
   return (
     <main className="min-h-screen bg-white text-gray-900">
       {/* Hero */}
       <section className="max-w-3xl mx-auto px-6 pt-16 pb-10 text-center">
         <h1 className="text-4xl font-bold leading-tight text-gray-900 mb-4">
-          ¿Te están cobrando de más en la factura del gas?
+          ¿Te están cobrando de más en tu factura de energía?
         </h1>
         <p className="text-xl text-gray-700 max-w-xl mx-auto">
           Comparamos tu factura con la tarifa oficial del Gobierno español y te decimos
@@ -97,8 +94,32 @@ export default function HomePage() {
         </p>
       </section>
 
-      {/* Tabs */}
       <section className="max-w-2xl mx-auto px-6 pb-16">
+        {/* Selector gas / electricidad */}
+        <div className="flex gap-3 mb-8">
+          <button
+            onClick={() => handleTipoEnergia("gas")}
+            className={`flex-1 py-3 px-4 rounded-xl text-lg font-semibold border-2 transition-colors ${
+              tipoEnergia === "gas"
+                ? "border-blue-700 bg-blue-700 text-white"
+                : "border-gray-300 text-gray-700 hover:border-gray-400"
+            }`}
+          >
+            Gas natural
+          </button>
+          <button
+            onClick={() => handleTipoEnergia("electricidad")}
+            className={`flex-1 py-3 px-4 rounded-xl text-lg font-semibold border-2 transition-colors ${
+              tipoEnergia === "electricidad"
+                ? "border-blue-700 bg-blue-700 text-white"
+                : "border-gray-300 text-gray-700 hover:border-gray-400"
+            }`}
+          >
+            Electricidad
+          </button>
+        </div>
+
+        {/* Tabs subir / manual */}
         <div className="flex border-b border-gray-300 mb-8">
           <button
             onClick={() => setTab("factura")}
@@ -173,44 +194,9 @@ export default function HomePage() {
 
         {/* Tab B: Formulario manual */}
         {tab === "manual" && (
-          <form onSubmit={handleManualSubmit} className="space-y-6">
-            <Field label="¿Cuál es tu compañía de gas?" name="comercializadora" type="text" placeholder="Ej: Naturgy, Endesa, Iberdrola…" />
-            <Field label="¿Cuál es el nombre de tu tarifa o producto?" name="producto" type="text" placeholder="Ej: Gas Plano, Tarifa Estable…" />
-
-            <div>
-              <label className="block text-lg font-medium text-gray-800 mb-2">
-                ¿Estás en mercado libre o en tarifa regulada?
-              </label>
-              <select
-                name="es_mercado_libre"
-                required
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Selecciona una opción</option>
-                <option value="mercado_libre">Mercado libre</option>
-                <option value="regulada">Tarifa regulada (TUR)</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Fecha de inicio del período" name="fecha_inicio" type="date" required />
-              <Field label="Fecha de fin del período" name="fecha_fin" type="date" required />
-            </div>
-
-            <Field label="¿Cuántos kWh consumiste en este período?" name="consumo_kwh" type="number" placeholder="Ej: 320" step="0.01" required />
-            <Field label="¿Cuánto pagas de término fijo al día? (€/día)" name="termino_fijo_eur_dia" type="number" placeholder="Ej: 0.15" step="0.000001" required />
-            <Field label="¿Cuánto pagas por cada kWh consumido? (€/kWh)" name="termino_variable_eur_kwh" type="number" placeholder="Ej: 0.075" step="0.000001" required />
-            <Field label="¿Tienes algún descuento? ¿Qué porcentaje? (opcional)" name="descuento_pct" type="number" placeholder="Ej: 5" step="0.1" />
-            <Field label="Presión del suministro en bar (opcional, si aparece en la factura)" name="presion_bar" type="number" placeholder="Ej: 0.05" step="0.01" />
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 text-xl font-semibold bg-blue-700 text-white rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? "Analizando…" : "Analizar mis datos"}
-            </button>
-          </form>
+          tipoEnergia === "gas"
+            ? <GasManualForm onSubmit={handleManualSubmit} loading={loading} />
+            : <ElectricManualForm onSubmit={handleManualSubmit} loading={loading} />
         )}
       </section>
 
@@ -232,20 +218,130 @@ export default function HomePage() {
   )
 }
 
+function GasManualForm({ onSubmit, loading }: { onSubmit: (e: FormEvent<HTMLFormElement>) => void; loading: boolean }) {
+  return (
+    <form onSubmit={onSubmit} className="space-y-6">
+      <input type="hidden" name="tipo_energia" value="gas" />
+      <Field label="¿Cuál es tu compañía de gas?" name="comercializadora" type="text" placeholder="Ej: Naturgy, Endesa, Iberdrola…" />
+      <Field label="¿Cuál es el nombre de tu tarifa o producto?" name="producto" type="text" placeholder="Ej: Gas Plano, Tarifa Estable…" />
+      <div>
+        <label className="block text-lg font-medium text-gray-800 mb-2">
+          ¿Estás en mercado libre o en tarifa regulada?
+        </label>
+        <select
+          name="es_mercado_libre"
+          required
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Selecciona una opción</option>
+          <option value="mercado_libre">Mercado libre</option>
+          <option value="regulada">Tarifa regulada (TUR)</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Fecha de inicio del período" name="fecha_inicio" type="date" required />
+        <Field label="Fecha de fin del período" name="fecha_fin" type="date" required />
+      </div>
+      <Field label="¿Cuántos kWh consumiste en este período?" name="consumo_kwh" type="number" placeholder="Ej: 320" step="0.01" required />
+      <Field label="¿Cuánto pagas de término fijo al día? (€/día)" name="termino_fijo_eur_dia" type="number" placeholder="Ej: 0.15" step="0.000001" required />
+      <Field label="¿Cuánto pagas por cada kWh consumido? (€/kWh)" name="termino_variable_eur_kwh" type="number" placeholder="Ej: 0.075" step="0.000001" required />
+      <Field label="¿Tienes algún descuento? ¿Qué porcentaje? (opcional)" name="descuento_pct" type="number" placeholder="Ej: 5" step="0.1" />
+      <Field label="Presión del suministro en bar (opcional)" name="presion_bar" type="number" placeholder="Ej: 0.05" step="0.01" />
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full py-4 text-xl font-semibold bg-blue-700 text-white rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        {loading ? "Analizando…" : "Analizar mis datos"}
+      </button>
+    </form>
+  )
+}
+
+function ElectricManualForm({ onSubmit, loading }: { onSubmit: (e: FormEvent<HTMLFormElement>) => void; loading: boolean }) {
+  return (
+    <form onSubmit={onSubmit} className="space-y-6">
+      <input type="hidden" name="tipo_energia" value="electricidad" />
+      <Field label="¿Cuál es tu compañía eléctrica?" name="comercializadora" type="text" placeholder="Ej: Endesa, Iberdrola, Naturgy…" />
+      <Field label="¿Cuál es el nombre de tu tarifa o producto?" name="producto" type="text" placeholder="Ej: Tarifa Nocturna, Tempo Libre…" />
+      <div>
+        <label className="block text-lg font-medium text-gray-800 mb-2">
+          ¿Estás en mercado libre o en PVPC?
+        </label>
+        <select
+          name="es_mercado_libre"
+          required
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 text-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Selecciona una opción</option>
+          <option value="mercado_libre">Mercado libre</option>
+          <option value="regulada">PVPC (tarifa regulada)</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Fecha de inicio del período" name="fecha_inicio" type="date" required />
+        <Field label="Fecha de fin del período" name="fecha_fin" type="date" required />
+      </div>
+      <Field label="¿Cuántos kWh consumiste en este período?" name="consumo_kwh" type="number" placeholder="Ej: 180" step="0.01" required />
+      <Field label="Potencia contratada (kW)" name="potencia_contratada_kw" type="number" placeholder="Ej: 3.45" step="0.01" />
+      <Field label="Término de potencia (€/kW/día)" name="termino_potencia_eur_kw_dia" type="number" placeholder="Ej: 0.104" step="0.000001" />
+      <Field label="Precio de la energía (€/kWh)" name="termino_energia_eur_kwh" type="number" placeholder="Ej: 0.18" step="0.000001" required />
+      <Field label="¿Tienes algún descuento? ¿Qué porcentaje? (opcional)" name="descuento_pct" type="number" placeholder="Ej: 5" step="0.1" />
+      <button
+        type="submit"
+        disabled={loading}
+        className="w-full py-4 text-xl font-semibold bg-blue-700 text-white rounded-xl hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        {loading ? "Analizando…" : "Analizar mis datos"}
+      </button>
+    </form>
+  )
+}
+
+function buildGasBody(fd: FormData) {
+  const descuentoPct = fd.get("descuento_pct")
+  return {
+    tipo_energia: "gas",
+    comercializadora: fd.get("comercializadora") as string || null,
+    producto: fd.get("producto") as string || null,
+    es_mercado_libre: fd.get("es_mercado_libre") === "mercado_libre",
+    fecha_inicio: fd.get("fecha_inicio") as string || null,
+    fecha_fin: fd.get("fecha_fin") as string || null,
+    dias_facturados: calcularDias(fd.get("fecha_inicio") as string, fd.get("fecha_fin") as string),
+    consumo_kwh: parseNum(fd.get("consumo_kwh")),
+    consumo_anual_estimado_kwh: null,
+    termino_fijo_eur_dia: parseNum(fd.get("termino_fijo_eur_dia")),
+    termino_variable_eur_kwh: parseNum(fd.get("termino_variable_eur_kwh")),
+    presion_bar: parseNum(fd.get("presion_bar")),
+    descuentos: descuentoPct ? [{ descripcion: "Descuento comercial", porcentaje: Number(descuentoPct) }] : [],
+    importe_total: null,
+    peaje_acceso: null,
+  }
+}
+
+function buildElectricBody(fd: FormData) {
+  const descuentoPct = fd.get("descuento_pct")
+  return {
+    tipo_energia: "electricidad",
+    comercializadora: fd.get("comercializadora") as string || null,
+    producto: fd.get("producto") as string || null,
+    es_mercado_libre: fd.get("es_mercado_libre") === "mercado_libre",
+    fecha_inicio: fd.get("fecha_inicio") as string || null,
+    fecha_fin: fd.get("fecha_fin") as string || null,
+    dias_facturados: calcularDias(fd.get("fecha_inicio") as string, fd.get("fecha_fin") as string),
+    consumo_kwh: parseNum(fd.get("consumo_kwh")),
+    potencia_contratada_kw: parseNum(fd.get("potencia_contratada_kw")),
+    termino_potencia_eur_kw_dia: parseNum(fd.get("termino_potencia_eur_kw_dia")),
+    termino_energia_eur_kwh: parseNum(fd.get("termino_energia_eur_kwh")),
+    descuentos: descuentoPct ? [{ descripcion: "Descuento comercial", porcentaje: Number(descuentoPct) }] : [],
+    importe_total: null,
+  }
+}
+
 function Field({
-  label,
-  name,
-  type,
-  placeholder,
-  step,
-  required,
+  label, name, type, placeholder, step, required,
 }: {
-  label: string
-  name: string
-  type: string
-  placeholder?: string
-  step?: string
-  required?: boolean
+  label: string; name: string; type: string; placeholder?: string; step?: string; required?: boolean
 }) {
   return (
     <div>
