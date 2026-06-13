@@ -330,14 +330,19 @@ function CompTable({ titulo, subtitulo, rows }: {
       <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
         <h2 className="text-base font-semibold text-gray-900">{titulo}</h2>
         {subtitulo && <p className="text-xs text-gray-500 mt-0.5">{subtitulo}</p>}
+        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+          La columna <strong>verde</strong> es lo que debería costarte según la tarifa oficial del Gobierno.
+          La columna <strong>Tu factura</strong> es lo que te cobra tu compañía.
+          La diferencia en % indica cuánto más (o menos) pagas.
+        </p>
       </div>
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-gray-100">
             <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Concepto</th>
             <th className="text-right px-3 py-2.5 text-xs font-medium text-gray-500">Tu factura</th>
-            <th className="text-right px-3 py-2.5 text-xs font-medium text-gray-500">Referencia</th>
-            <th className="text-right px-5 py-2.5 text-xs font-medium text-gray-500">Dif.</th>
+            <th className="text-right px-3 py-2.5 text-xs font-medium text-gray-500">Tarifa oficial</th>
+            <th className="text-right px-5 py-2.5 text-xs font-medium text-gray-500">Diferencia</th>
           </tr>
         </thead>
         <tbody>
@@ -365,8 +370,10 @@ function QuePuedoHacer({ comercializadoras, tarifa }: {
     <div className="rounded-xl border border-gray-200 overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
         <h2 className="text-base font-semibold text-gray-900">¿Qué puedo hacer?</h2>
-        <p className="text-sm text-gray-600 mt-1">
-          El cambio a la {tarifa} es <strong>gratuito</strong>. Llama a tu comercializadora de referencia:
+        <p className="text-sm text-gray-600 mt-1 leading-relaxed">
+          Tienes derecho a cambiarte a la tarifa oficial ({tarifa}) en cualquier momento.
+          El cambio es <strong>completamente gratuito</strong>, no hay penalización y lo puedes pedir hoy mismo por teléfono.
+          No necesitas contratar nada nuevo — simplemente llamas y te aplican la tarifa regulada.
         </p>
       </div>
       <ul>
@@ -400,18 +407,25 @@ function TurContextCard({ tur, tramo }: {
     <div className="rounded-xl border border-gray-200 overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
         <h2 className="text-base font-semibold text-gray-900">Tu tarifa regulada ({tramo})</h2>
-        <p className="text-xs text-gray-500 mt-0.5">
-          Vigente desde {tur.entrada.vigente_desde} · {tur.entrada.fuente}
+        <p className="text-xs text-gray-500 mt-0.5">Publicada en el BOE · vigente desde {tur.entrada.vigente_desde}</p>
+        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+          La TUR es la tarifa que fija el Gobierno cada trimestre. Al estar en ella, pagas exactamente estos precios, sin margen adicional de ninguna compañía.
         </p>
       </div>
       <div className="divide-y divide-gray-50">
-        <div className="flex justify-between items-center px-5 py-3">
-          <span className="text-sm text-gray-600">Término variable</span>
-          <span className="text-sm font-semibold text-gray-900">{tur.variable_eur_kwh.toFixed(6)} €/kWh</span>
+        <div className="px-5 py-3">
+          <div className="flex justify-between items-baseline">
+            <span className="text-sm font-medium text-gray-800">Lo que pagas por cada kWh que consumes</span>
+            <span className="text-sm font-semibold text-gray-900 ml-4 flex-shrink-0">{tur.variable_eur_kwh.toFixed(6)} €/kWh</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">Término variable — solo se cobra por lo que usas</p>
         </div>
-        <div className="flex justify-between items-center px-5 py-3">
-          <span className="text-sm text-gray-600">Término fijo</span>
-          <span className="text-sm font-semibold text-gray-900">{tur.fijo_eur_dia.toFixed(6)} €/día</span>
+        <div className="px-5 py-3">
+          <div className="flex justify-between items-baseline">
+            <span className="text-sm font-medium text-gray-800">Lo que pagas cada día solo por tener el gas conectado</span>
+            <span className="text-sm font-semibold text-gray-900 ml-4 flex-shrink-0">{tur.fijo_eur_dia.toFixed(6)} €/día</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">Término fijo — se cobra aunque no consumas nada</p>
         </div>
       </div>
     </div>
@@ -425,29 +439,36 @@ function PvpcContextCard({ pvpc, tuPrecio }: {
   return (
     <div className="rounded-xl border border-gray-200 overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
-        <h2 className="text-base font-semibold text-gray-900">Precios PVPC de tu período</h2>
-        <p className="text-xs text-gray-500 mt-0.5">
-          {pvpc.fecha_inicio} → {pvpc.fecha_fin} · {pvpc.zona}
+        <h2 className="text-base font-semibold text-gray-900">Precios de la luz durante tu período de facturación</h2>
+        <p className="text-xs text-gray-500 mt-0.5">{pvpc.fecha_inicio} → {pvpc.fecha_fin} · {pvpc.zona}</p>
+        <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+          En el PVPC el precio cambia cada hora según el mercado eléctrico. Estos datos son los precios oficiales reales de Red Eléctrica durante tus días de facturación.
         </p>
       </div>
       <div className="divide-y divide-gray-50">
         {tuPrecio !== null && (
-          <div className="flex justify-between items-center px-5 py-3">
-            <span className="text-sm text-gray-600">Tu precio en factura</span>
-            <span className="text-sm font-semibold text-gray-900">{tuPrecio.toFixed(5)} €/kWh</span>
+          <div className="px-5 py-3">
+            <div className="flex justify-between items-baseline">
+              <span className="text-sm font-medium text-gray-800">Precio que aparece en tu factura</span>
+              <span className="text-sm font-semibold text-gray-900 ml-4 flex-shrink-0">{tuPrecio.toFixed(5)} €/kWh</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">Lo que pone tu compañía por cada kWh consumido</p>
           </div>
         )}
-        <div className="flex justify-between items-center px-5 py-3">
-          <span className="text-sm text-gray-600">Precio medio del período</span>
-          <span className="text-sm font-semibold text-gray-900">{pvpc.media_eur_kwh.toFixed(5)} €/kWh</span>
+        <div className="px-5 py-3">
+          <div className="flex justify-between items-baseline">
+            <span className="text-sm font-medium text-gray-800">Precio medio real del período</span>
+            <span className="text-sm font-semibold text-gray-900 ml-4 flex-shrink-0">{pvpc.media_eur_kwh.toFixed(5)} €/kWh</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">Media de todas las horas de todos tus días de facturación</p>
         </div>
-        <div className="flex justify-between items-center px-5 py-3">
-          <span className="text-sm text-gray-500 text-xs">Precio más bajo del período</span>
-          <span className="text-xs text-gray-500">{pvpc.min_eur_kwh.toFixed(5)} €/kWh</span>
-        </div>
-        <div className="flex justify-between items-center px-5 py-3">
-          <span className="text-sm text-gray-500 text-xs">Precio más alto del período</span>
-          <span className="text-xs text-gray-500">{pvpc.max_eur_kwh.toFixed(5)} €/kWh</span>
+        <div className="px-5 py-3 bg-gray-50">
+          <p className="text-xs text-gray-500 mb-2 font-medium">Rango de precios del período</p>
+          <div className="flex justify-between text-xs text-gray-500">
+            <span>Hora más barata: <strong className="text-gray-700">{pvpc.min_eur_kwh.toFixed(5)} €/kWh</strong></span>
+            <span>Hora más cara: <strong className="text-gray-700">{pvpc.max_eur_kwh.toFixed(5)} €/kWh</strong></span>
+          </div>
+          <p className="text-xs text-gray-400 mt-1.5">El precio varía hora a hora. Si tienes discriminación horaria, puedes aprovechar las horas más baratas.</p>
         </div>
       </div>
     </div>
