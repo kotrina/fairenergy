@@ -2,16 +2,17 @@ import { NextRequest, NextResponse } from "next/server"
 import { extractBillData } from "../../../lib/ocr"
 import { analyzeGasBill, type BillData } from "../../../lib/analyzer"
 import { getTurForDate } from "../../../lib/tur"
+import { extractElectricBillData, type ElectricBillData } from "../../../lib/ocr-electric"
+import { analyzeElectricBill } from "../../../lib/analyzer-electric"
+import { getPvpcForPeriod } from "../../../lib/pvpc"
 
 export async function POST(request: NextRequest) {
   try {
     const contentType = request.headers.get("content-type") ?? ""
-    const tipoEnergia = "gas" // campo reservado para electricidad en el futuro
-
-    let billData: BillData
 
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData()
+      const tipoEnergia = (formData.get("tipo_energia") as string) ?? "gas"
       const factura = formData.get("factura")
 
       if (!factura || !(factura instanceof File)) {
@@ -21,33 +22,48 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      billData = await extractBillData(factura)
-    } else {
-      const body = await request.json() as { tipo_energia?: string } & BillData
-      billData = body as BillData
+      if (tipoEnergia === "electricidad") {
+        const billData = await extractElectricBillData(factura)
+        return await handleElectric(billData)
+      }
+
+      const billData = await extractBillData(factura)
+      return handleGas(billData)
     }
 
-    if (tipoEnergia !== "gas") {
-      return NextResponse.json(
-        { success: false, error: "Solo se soporta tipo_energia: 'gas' por ahora" },
-        { status: 400 }
-      )
+    // JSON manual
+    const body = await request.json() as { tipo_energia?: string } & (BillData | ElectricBillData)
+    const tipoEnergia = body.tipo_energia ?? "gas"
+
+    if (tipoEnergia === "electricidad") {
+      return await handleElectric(body as ElectricBillData)
     }
 
-    const fechaReferencia = billData.fecha_inicio ?? billData.fecha_fin ?? new Date().toISOString().slice(0, 10)
-    const consumoAnual = billData.consumo_anual_estimado_kwh ?? estimarConsumoAnual(billData) ?? 5000
-    const turData = getTurForDate(fechaReferencia, consumoAnual)
-
-    const resultado = analyzeGasBill(billData, turData)
-
-    return NextResponse.json({ success: true, data: resultado, factura: billData })
+    return handleGas(body as BillData)
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error desconocido"
     return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }
 
-function estimarConsumoAnual(billData: BillData): number | null {
+function handleGas(billData: BillData) {
+  const fechaReferencia = billData.fecha_inicio ?? billData.fecha_fin ?? new Date().toISOString().slice(0, 10)
+  const consumoAnual = billData.consumo_anual_estimado_kwh ?? estimarConsumoAnualGas(billData) ?? 5000
+  const turData = getTurForDate(fechaReferencia, consumoAnual)
+  const resultado = analyzeGasBill(billData, turData)
+  return NextResponse.json({ success: true, tipo_energia: "gas", data: resultado, factura: billData })
+}
+
+async function handleElectric(billData: ElectricBillData) {
+  const { fecha_inicio, fecha_fin } = billData
+  const pvpcData = fecha_inicio && fecha_fin
+    ? await getPvpcForPeriod(fecha_inicio, fecha_fin)
+    : null
+  const resultado = analyzeElectricBill(billData, pvpcData)
+  return NextResponse.json({ success: true, tipo_energia: "electricidad", data: resultado, factura: billData })
+}
+
+function estimarConsumoAnualGas(billData: BillData): number | null {
   if (!billData.consumo_kwh || !billData.dias_facturados || billData.dias_facturados === 0) return null
   return (billData.consumo_kwh / billData.dias_facturados) * 365
 }
