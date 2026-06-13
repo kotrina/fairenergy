@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Nav from "../components/Nav"
 
-// --- Gas types ---
 type GasAnalysisResult = {
   elegible_tur: boolean
   razon_no_elegible: string | null
@@ -34,7 +34,6 @@ type GasBillData = {
   descuentos: { descripcion: string; porcentaje: number }[]
 }
 
-// --- Electric types ---
 type ElectricAnalysisResult = {
   tipo_energia: "electricidad"
   elegible_pvpc: boolean
@@ -67,10 +66,19 @@ type ElectricBillData = {
 
 type Verdict = "verde" | "amarillo" | "rojo"
 
-const COLORS = {
-  verde: { bg: "bg-green-50", border: "border-green-500", text: "text-green-800", badge: "bg-green-500", icon: "✓" },
-  amarillo: { bg: "bg-yellow-50", border: "border-yellow-500", text: "text-yellow-800", badge: "bg-yellow-500", icon: "!" },
-  rojo: { bg: "bg-red-50", border: "border-red-500", text: "text-red-800", badge: "bg-red-500", icon: "✕" },
+const VERDICT_STYLES = {
+  verde: {
+    bg: "#F0FDF4", border: "#86EFAC", badgeBg: "#16A34A",
+    titleColor: "#14532D", textColor: "#166534",
+  },
+  amarillo: {
+    bg: "#FFFBEB", border: "#FCD34D", badgeBg: "#D97706",
+    titleColor: "#78350F", textColor: "#92400E",
+  },
+  rojo: {
+    bg: "#FEF2F2", border: "#FCA5A5", badgeBg: "#DC2626",
+    titleColor: "#7F1D1D", textColor: "#991B1B",
+  },
 }
 
 const COMERCIALIZADORAS_GAS = [
@@ -121,8 +129,11 @@ export default function ResultadoPage() {
 
   if (!tipo) {
     return (
-      <main className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-xl text-gray-600">Cargando resultado…</p>
+      <main className="min-h-screen bg-white">
+        <Nav back />
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">Cargando resultado…</p>
+        </div>
       </main>
     )
   }
@@ -138,147 +149,90 @@ export default function ResultadoPage() {
   return null
 }
 
-// ─── Gas resultado ─────────────────────────────────────────────────────────────
+// ─── Gas ───────────────────────────────────────────────────────────────────────
 
 function GasResultado({ resultado, factura }: { resultado: GasAnalysisResult; factura: GasBillData | null }) {
-  if (!resultado.elegible_tur) {
-    return <NoElegible razon={resultado.razon_no_elegible} />
-  }
+  if (!resultado.elegible_tur) return <NoElegible razon={resultado.razon_no_elegible} />
 
   const desv = resultado.desviacion_variable_pct
   const verdict: Verdict = resultado.esta_en_tur || desv <= 20 ? "verde" : desv <= 60 ? "amarillo" : "rojo"
-  const colors = COLORS[verdict]
   const tur = resultado.tur_referencia
 
+  const titulo = verdict === "verde" ? "Estás bien" : verdict === "amarillo" ? "Podrías mejorar" : "Te están cobrando de más"
   const frase = verdict === "verde"
-    ? (resultado.esta_en_tur
-        ? "Estás en la tarifa oficial del Gobierno. Bien hecho."
-        : "Tu tarifa está dentro de los límites razonables respecto a la tarifa oficial.")
+    ? (resultado.esta_en_tur ? "Estás en la tarifa oficial del Gobierno. Bien hecho." : "Tu tarifa está dentro de los límites razonables respecto a la tarifa oficial.")
     : verdict === "amarillo"
-      ? `Tu compañía te cobra un ${Math.round(desv)}% más que la tarifa oficial. Podrías ahorrar unos ${resultado.ahorro_mensual_estimado_eur.toFixed(0)}€ al mes.`
-      : `Tu compañía te cobra el ${(1 + desv / 100).toFixed(1)}x que la tarifa oficial. Podrías ahorrar unos ${resultado.ahorro_mensual_estimado_eur.toFixed(0)}€ al mes, más de ${resultado.ahorro_anual_estimado_eur.toFixed(0)}€ al año.`
+      ? `Tu compañía te cobra un ${Math.round(desv)}% más que la tarifa oficial. Podrías ahorrar ${resultado.ahorro_mensual_estimado_eur.toFixed(0)}€ al mes.`
+      : `Tu compañía te cobra ${(1 + desv / 100).toFixed(1)}x la tarifa oficial. Podrías ahorrar ${resultado.ahorro_mensual_estimado_eur.toFixed(0)}€ al mes.`
 
   return (
     <ResultadoLayout
-      verdict={verdict} colors={colors}
-      titulo={verdict === "verde" ? "Estás bien" : verdict === "amarillo" ? "Podrías mejorar" : "Te están cobrando de más"}
-      frase={frase}
+      verdict={verdict} titulo={titulo} frase={frase}
       alertas={resultado.alertas}
       ahorroMensual={resultado.ahorro_mensual_estimado_eur}
       ahorroAnual={resultado.ahorro_anual_estimado_eur}
     >
-      {tur && (
-        <div className="border border-gray-200 rounded-xl p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Comparativa con la tarifa oficial (TUR)</h2>
-          <table className="w-full text-lg">
-            <thead>
-              <tr className="text-left text-gray-600 border-b">
-                <th className="pb-2">Concepto</th>
-                <th className="pb-2 text-right">Tu factura</th>
-                <th className="pb-2 text-right">TUR ({resultado.tramo_tur})</th>
-                <th className="pb-2 text-right">Diferencia</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              <tr>
-                <td className="py-3 text-gray-800">Término variable (€/kWh)</td>
-                <td className="py-3 text-right font-medium text-gray-900">
-                  {factura?.termino_variable_eur_kwh != null ? factura.termino_variable_eur_kwh.toFixed(6) : "—"}
-                </td>
-                <td className="py-3 text-right text-green-700">{tur.variable_eur_kwh.toFixed(6)}</td>
-                <td className={`py-3 text-right font-bold ${resultado.desviacion_variable_pct > 0 ? "text-red-700" : "text-green-700"}`}>
-                  {resultado.desviacion_variable_pct > 0 ? "+" : ""}{resultado.desviacion_variable_pct.toFixed(1)}%
-                </td>
-              </tr>
-              <tr>
-                <td className="py-3 text-gray-800">Término fijo (€/día)</td>
-                <td className="py-3 text-right font-medium text-gray-900">
-                  {factura?.termino_fijo_eur_dia != null ? factura.termino_fijo_eur_dia.toFixed(6) : "—"}
-                </td>
-                <td className="py-3 text-right text-green-700">{tur.fijo_eur_dia.toFixed(6)}</td>
-                <td className={`py-3 text-right font-bold ${resultado.desviacion_fijo_pct > 0 ? "text-red-700" : "text-green-700"}`}>
-                  {resultado.desviacion_fijo_pct > 0 ? "+" : ""}{resultado.desviacion_fijo_pct.toFixed(1)}%
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      {tur && resultado.esta_en_tur && (
+        <TurContextCard tur={tur} tramo={resultado.tramo_tur} />
+      )}
+      {tur && !resultado.esta_en_tur && (
+        <CompTable titulo={`Comparativa con la TUR (${resultado.tramo_tur})`} rows={[
+          {
+            concepto: "Variable (€/kWh)",
+            tuFactura: factura?.termino_variable_eur_kwh?.toFixed(6) ?? "—",
+            referencia: tur.variable_eur_kwh.toFixed(6),
+            diferencia: resultado.desviacion_variable_pct,
+          },
+          {
+            concepto: "Fijo (€/día)",
+            tuFactura: factura?.termino_fijo_eur_dia?.toFixed(6) ?? "—",
+            referencia: tur.fijo_eur_dia.toFixed(6),
+            diferencia: resultado.desviacion_fijo_pct,
+          },
+        ]} />
       )}
       {!resultado.esta_en_tur && <QuePuedoHacer comercializadoras={COMERCIALIZADORAS_GAS} tarifa="TUR" />}
     </ResultadoLayout>
   )
 }
 
-// ─── Electricidad resultado ────────────────────────────────────────────────────
+// ─── Electricidad ──────────────────────────────────────────────────────────────
 
 function ElectricResultado({ resultado, factura }: { resultado: ElectricAnalysisResult; factura: ElectricBillData | null }) {
-  if (!resultado.elegible_pvpc) {
-    return <NoElegible razon={resultado.razon_no_elegible} />
-  }
+  if (!resultado.elegible_pvpc) return <NoElegible razon={resultado.razon_no_elegible} />
 
   const desv = resultado.desviacion_energia_pct
   const verdict: Verdict = resultado.esta_en_pvpc || desv <= 20 ? "verde" : desv <= 60 ? "amarillo" : "rojo"
-  const colors = COLORS[verdict]
   const pvpc = resultado.pvpc_referencia
 
+  const titulo = verdict === "verde" ? "Estás bien" : verdict === "amarillo" ? "Podrías mejorar" : "Te están cobrando de más"
   const frase = verdict === "verde"
-    ? (resultado.esta_en_pvpc
-        ? "Estás en el PVPC, la tarifa regulada del Gobierno. Bien hecho."
-        : "Tu precio de la energía está dentro de los límites razonables respecto al PVPC.")
+    ? (resultado.esta_en_pvpc ? "Estás en el PVPC, la tarifa regulada. Bien hecho." : "Tu precio de energía está dentro de los límites razonables respecto al PVPC.")
     : verdict === "amarillo"
-      ? `Tu compañía te cobra un ${Math.round(desv)}% más que el PVPC del mismo período. Podrías ahorrar unos ${resultado.ahorro_mensual_estimado_eur.toFixed(0)}€ al mes.`
-      : `Tu compañía te cobra el ${(1 + desv / 100).toFixed(1)}x que el PVPC. Podrías ahorrar unos ${resultado.ahorro_mensual_estimado_eur.toFixed(0)}€ al mes, más de ${resultado.ahorro_anual_estimado_eur.toFixed(0)}€ al año.`
+      ? `Tu compañía te cobra un ${Math.round(desv)}% más que el PVPC del mismo período. Podrías ahorrar ${resultado.ahorro_mensual_estimado_eur.toFixed(0)}€ al mes.`
+      : `Tu compañía te cobra ${(1 + desv / 100).toFixed(1)}x el PVPC. Podrías ahorrar ${resultado.ahorro_mensual_estimado_eur.toFixed(0)}€ al mes.`
 
   return (
     <ResultadoLayout
-      verdict={verdict} colors={colors}
-      titulo={verdict === "verde" ? "Estás bien" : verdict === "amarillo" ? "Podrías mejorar" : "Te están cobrando de más"}
-      frase={frase}
+      verdict={verdict} titulo={titulo} frase={frase}
       alertas={resultado.alertas}
       ahorroMensual={resultado.ahorro_mensual_estimado_eur}
       ahorroAnual={resultado.ahorro_anual_estimado_eur}
     >
-      {pvpc && (
-        <div className="border border-gray-200 rounded-xl p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Comparativa con el PVPC</h2>
-          <p className="text-sm text-gray-500 mb-4">
-            Precio medio PVPC del período {pvpc.fecha_inicio} → {pvpc.fecha_fin} · {pvpc.zona}
-          </p>
-          <table className="w-full text-lg">
-            <thead>
-              <tr className="text-left text-gray-600 border-b">
-                <th className="pb-2">Concepto</th>
-                <th className="pb-2 text-right">Tu factura</th>
-                <th className="pb-2 text-right">PVPC medio</th>
-                <th className="pb-2 text-right">Diferencia</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              <tr>
-                <td className="py-3 text-gray-800">Precio energía (€/kWh)</td>
-                <td className="py-3 text-right font-medium text-gray-900">
-                  {factura?.termino_energia_eur_kwh != null ? factura.termino_energia_eur_kwh.toFixed(5) : "—"}
-                </td>
-                <td className="py-3 text-right text-green-700">{pvpc.media_eur_kwh.toFixed(5)}</td>
-                <td className={`py-3 text-right font-bold ${desv > 0 ? "text-red-700" : "text-green-700"}`}>
-                  {desv > 0 ? "+" : ""}{desv.toFixed(1)}%
-                </td>
-              </tr>
-              <tr>
-                <td className="py-3 text-gray-500 text-base">Mínimo PVPC del período</td>
-                <td className="py-3 text-right text-gray-400">—</td>
-                <td className="py-3 text-right text-gray-600 text-base">{pvpc.min_eur_kwh.toFixed(5)}</td>
-                <td className="py-3 text-right text-gray-400">—</td>
-              </tr>
-              <tr>
-                <td className="py-3 text-gray-500 text-base">Máximo PVPC del período</td>
-                <td className="py-3 text-right text-gray-400">—</td>
-                <td className="py-3 text-right text-gray-600 text-base">{pvpc.max_eur_kwh.toFixed(5)}</td>
-                <td className="py-3 text-right text-gray-400">—</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      {pvpc && resultado.esta_en_pvpc && (
+        <PvpcContextCard pvpc={pvpc} tuPrecio={factura?.termino_energia_eur_kwh ?? null} />
+      )}
+      {pvpc && !resultado.esta_en_pvpc && (
+        <CompTable
+          titulo="Comparativa con el PVPC"
+          subtitulo={`Precio medio real · ${pvpc.fecha_inicio} → ${pvpc.fecha_fin} · ${pvpc.zona}`}
+          rows={[{
+            concepto: "Energía (€/kWh)",
+            tuFactura: factura?.termino_energia_eur_kwh?.toFixed(5) ?? "—",
+            referencia: pvpc.media_eur_kwh.toFixed(5),
+            diferencia: desv,
+          }]}
+        />
       )}
       {!resultado.esta_en_pvpc && <QuePuedoHacer comercializadoras={COMERCIALIZADORAS_ELECTRIC} tarifa="PVPC" />}
     </ResultadoLayout>
@@ -287,11 +241,8 @@ function ElectricResultado({ resultado, factura }: { resultado: ElectricAnalysis
 
 // ─── Shared layout ─────────────────────────────────────────────────────────────
 
-function ResultadoLayout({
-  colors, titulo, frase, alertas, ahorroMensual, ahorroAnual, children,
-}: {
-  verdict?: Verdict
-  colors: typeof COLORS["verde"]
+function ResultadoLayout({ verdict, titulo, frase, alertas, ahorroMensual, ahorroAnual, children }: {
+  verdict: Verdict
   titulo: string
   frase: string
   alertas: string[]
@@ -299,50 +250,59 @@ function ResultadoLayout({
   ahorroAnual: number
   children?: React.ReactNode
 }) {
+  const s = VERDICT_STYLES[verdict]
+  const icon = verdict === "verde" ? "✓" : verdict === "amarillo" ? "!" : "✕"
+
   return (
     <main className="min-h-screen bg-white">
-      <div className="max-w-2xl mx-auto px-6 py-12 space-y-8">
-        <div className={`border-2 ${colors.border} ${colors.bg} rounded-xl p-8`}>
-          <div className="flex items-center gap-4 mb-4">
-            <span className={`${colors.badge} text-white text-2xl font-bold w-12 h-12 flex items-center justify-center rounded-full`}>
-              {colors.icon}
-            </span>
-            <h1 className={`text-3xl font-bold ${colors.text}`}>{titulo}</h1>
+      <Nav back />
+      <div className="max-w-xl mx-auto px-6 py-8 space-y-5">
+
+        {/* Veredicto */}
+        <div className="rounded-2xl p-6 flex gap-4 items-start" style={{ background: s.bg, border: `1px solid ${s.border}` }}>
+          <div
+            className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+            style={{ background: s.badgeBg }}
+          >
+            {icon}
           </div>
-          <p className={`text-2xl font-medium ${colors.text} leading-tight`}>{frase}</p>
+          <div>
+            <h1 className="text-xl font-semibold mb-1" style={{ color: s.titleColor }}>{titulo}</h1>
+            <p className="text-base leading-relaxed" style={{ color: s.textColor }}>{frase}</p>
+          </div>
         </div>
 
-        {children}
-
+        {/* Ahorro */}
         {ahorroMensual > 0 && (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4 text-center">
-              <p className="text-base text-blue-700 font-medium">Ahorro mensual estimado</p>
-              <p className="text-3xl font-bold text-blue-900">{ahorroMensual.toFixed(0)}€</p>
-            </div>
-            <div className="bg-blue-50 rounded-lg p-4 text-center">
-              <p className="text-base text-blue-700 font-medium">Ahorro anual estimado</p>
-              <p className="text-3xl font-bold text-blue-900">{ahorroAnual.toFixed(0)}€</p>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <SavingCard label="Ahorro mensual" value={`${ahorroMensual.toFixed(0)}€`} />
+            <SavingCard label="Ahorro anual" value={`${ahorroAnual.toFixed(0)}€`} />
           </div>
         )}
 
+        {children}
+
+        {/* Alertas */}
         {alertas.length > 0 && (
-          <div className="border border-orange-200 bg-orange-50 rounded-xl p-6">
-            <h2 className="text-2xl font-bold text-orange-900 mb-4">Alertas detectadas</h2>
-            <ul className="space-y-3">
-              {alertas.map((alerta, i) => (
-                <li key={i} className="flex gap-3 text-lg text-orange-800">
-                  <span className="mt-1 shrink-0">⚠</span>
-                  <span>{alerta}</span>
+          <div className="rounded-xl p-5 border border-amber-200 bg-amber-50">
+            <h2 className="text-base font-semibold text-amber-900 mb-3">Alertas detectadas</h2>
+            <ul className="space-y-2">
+              {alertas.map((a, i) => (
+                <li key={i} className="flex gap-2 text-sm text-amber-800 leading-relaxed">
+                  <span className="flex-shrink-0 mt-0.5">⚠</span>
+                  <span>{a}</span>
                 </li>
               ))}
             </ul>
           </div>
         )}
 
-        <div className="text-center pt-4">
-          <Link href="/" className="inline-block px-8 py-4 text-xl font-semibold bg-gray-900 text-white rounded-xl hover:bg-gray-700 transition-colors">
+        <div className="text-center pt-2">
+          <Link
+            href="/"
+            className="inline-block px-8 py-3 text-base font-semibold text-white rounded-xl transition-opacity hover:opacity-90"
+            style={{ background: "#185FA5" }}
+          >
             Analizar otra factura
           </Link>
         </div>
@@ -351,37 +311,144 @@ function ResultadoLayout({
   )
 }
 
-function QuePuedoHacer({
-  comercializadoras, tarifa,
-}: {
+function SavingCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl p-4 text-center" style={{ background: "#E6F1FB" }}>
+      <p className="text-xs font-medium mb-1" style={{ color: "#185FA5" }}>{label}</p>
+      <p className="text-3xl font-semibold" style={{ color: "#0C447C" }}>{value}</p>
+    </div>
+  )
+}
+
+function CompTable({ titulo, subtitulo, rows }: {
+  titulo: string
+  subtitulo?: string
+  rows: { concepto: string; tuFactura: string; referencia: string; diferencia: number | null }[]
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
+        <h2 className="text-base font-semibold text-gray-900">{titulo}</h2>
+        {subtitulo && <p className="text-xs text-gray-500 mt-0.5">{subtitulo}</p>}
+      </div>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-100">
+            <th className="text-left px-5 py-2.5 text-xs font-medium text-gray-500">Concepto</th>
+            <th className="text-right px-3 py-2.5 text-xs font-medium text-gray-500">Tu factura</th>
+            <th className="text-right px-3 py-2.5 text-xs font-medium text-gray-500">Referencia</th>
+            <th className="text-right px-5 py-2.5 text-xs font-medium text-gray-500">Dif.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className={i < rows.length - 1 ? "border-b border-gray-50" : ""}>
+              <td className="px-5 py-3 text-gray-700">{row.concepto}</td>
+              <td className="px-3 py-3 text-right font-medium text-gray-900">{row.tuFactura}</td>
+              <td className="px-3 py-3 text-right font-medium" style={{ color: "#3B6D11" }}>{row.referencia}</td>
+              <td className="px-5 py-3 text-right font-semibold" style={{ color: row.diferencia === null ? "#9ca3af" : row.diferencia > 0 ? "#DC2626" : "#16A34A" }}>
+                {row.diferencia === null ? "—" : `${row.diferencia > 0 ? "+" : ""}${row.diferencia.toFixed(1)}%`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function QuePuedoHacer({ comercializadoras, tarifa }: {
   comercializadoras: { nombre: string; telefono: string }[]
   tarifa: "TUR" | "PVPC"
 }) {
   return (
-    <div className="border border-gray-200 rounded-xl p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">¿Qué puedo hacer?</h2>
-      <p className="text-lg text-gray-700 mb-6">
-        Tienes derecho a cambiar a la tarifa regulada ({tarifa}). El cambio es{" "}
-        <strong>gratuito</strong> y puedes solicitarlo por teléfono:
-      </p>
-      <ul className="space-y-3 mb-6">
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
+        <h2 className="text-base font-semibold text-gray-900">¿Qué puedo hacer?</h2>
+        <p className="text-sm text-gray-600 mt-1">
+          El cambio a la {tarifa} es <strong>gratuito</strong>. Llama a tu comercializadora de referencia:
+        </p>
+      </div>
+      <ul>
         {comercializadoras.map((c) => (
-          <li key={c.nombre} className="flex justify-between items-center text-lg border-b border-gray-100 pb-3">
-            <span className="text-gray-800 font-medium">{c.nombre}</span>
-            <span className="text-blue-700 font-bold">{c.telefono}</span>
+          <li key={c.nombre} className="flex justify-between items-center px-5 py-3 border-b border-gray-50 last:border-0">
+            <span className="text-sm text-gray-700">{c.nombre}</span>
+            <span className="text-sm font-semibold" style={{ color: "#185FA5" }}>{c.telefono}</span>
           </li>
         ))}
       </ul>
-      <p className="text-base text-gray-600">
-        También puedes comparar todas las opciones en el{" "}
-        <a href="https://comparador.cnmc.gob.es" target="_blank" rel="noopener noreferrer" className="text-blue-700 underline hover:text-blue-900">
-          comparador oficial de la CNMC
-        </a>.
-      </p>
-      <div className="mt-4 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-600">
-        <p className="text-lg text-blue-900 font-medium">
-          El cambio a {tarifa} es gratuito. Puedes solicitarlo hoy mismo por teléfono.
+      <div className="px-5 py-4 border-t border-gray-100">
+        <a
+          href="https://comparador.cnmc.gob.es"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm underline"
+          style={{ color: "#378ADD" }}
+        >
+          Ver comparador oficial de la CNMC →
+        </a>
+      </div>
+    </div>
+  )
+}
+
+function TurContextCard({ tur, tramo }: {
+  tur: { fijo_eur_dia: number; variable_eur_kwh: number; entrada: { vigente_desde: string; vigente_hasta: string; fuente: string } }
+  tramo: string | null
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
+        <h2 className="text-base font-semibold text-gray-900">Tu tarifa regulada ({tramo})</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Vigente desde {tur.entrada.vigente_desde} · {tur.entrada.fuente}
         </p>
+      </div>
+      <div className="divide-y divide-gray-50">
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-600">Término variable</span>
+          <span className="text-sm font-semibold text-gray-900">{tur.variable_eur_kwh.toFixed(6)} €/kWh</span>
+        </div>
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-600">Término fijo</span>
+          <span className="text-sm font-semibold text-gray-900">{tur.fijo_eur_dia.toFixed(6)} €/día</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PvpcContextCard({ pvpc, tuPrecio }: {
+  pvpc: { fecha_inicio: string; fecha_fin: string; zona: string; media_eur_kwh: number; min_eur_kwh: number; max_eur_kwh: number }
+  tuPrecio: number | null
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-100" style={{ background: "#F5FAFF" }}>
+        <h2 className="text-base font-semibold text-gray-900">Precios PVPC de tu período</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          {pvpc.fecha_inicio} → {pvpc.fecha_fin} · {pvpc.zona}
+        </p>
+      </div>
+      <div className="divide-y divide-gray-50">
+        {tuPrecio !== null && (
+          <div className="flex justify-between items-center px-5 py-3">
+            <span className="text-sm text-gray-600">Tu precio en factura</span>
+            <span className="text-sm font-semibold text-gray-900">{tuPrecio.toFixed(5)} €/kWh</span>
+          </div>
+        )}
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-600">Precio medio del período</span>
+          <span className="text-sm font-semibold text-gray-900">{pvpc.media_eur_kwh.toFixed(5)} €/kWh</span>
+        </div>
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-500 text-xs">Precio más bajo del período</span>
+          <span className="text-xs text-gray-500">{pvpc.min_eur_kwh.toFixed(5)} €/kWh</span>
+        </div>
+        <div className="flex justify-between items-center px-5 py-3">
+          <span className="text-sm text-gray-500 text-xs">Precio más alto del período</span>
+          <span className="text-xs text-gray-500">{pvpc.max_eur_kwh.toFixed(5)} €/kWh</span>
+        </div>
       </div>
     </div>
   )
@@ -389,15 +456,13 @@ function QuePuedoHacer({
 
 function NoElegible({ razon }: { razon: string | null }) {
   return (
-    <main className="min-h-screen bg-white max-w-2xl mx-auto px-6 py-16">
-      <div className="border-2 border-gray-400 rounded-xl p-8 bg-gray-50">
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">Resultado del análisis</h1>
-        <p className="text-xl text-gray-700">{razon}</p>
-      </div>
-      <div className="mt-8 text-center">
-        <Link href="/" className="text-blue-700 text-lg underline hover:text-blue-900">
-          Analizar otra factura
-        </Link>
+    <main className="min-h-screen bg-white">
+      <Nav back />
+      <div className="max-w-xl mx-auto px-6 py-12">
+        <div className="rounded-2xl border border-gray-200 bg-gray-50 p-8">
+          <h1 className="text-xl font-semibold text-gray-900 mb-3">Resultado del análisis</h1>
+          <p className="text-base text-gray-700 leading-relaxed">{razon}</p>
+        </div>
       </div>
     </main>
   )
