@@ -41,6 +41,45 @@ type TurEntry = {
 }
 ```
 
+## PvpcMonthCache
+
+Caché mensual de precios PVPC almacenada en `data/cache/pvpc-YYYY-MM.json`.
+
+```typescript
+type PvpcMonthCache = {
+  indicator: number       // 1001 = PVPC 2.0TD
+  zona: PvpcZona          // "Península" | "Canarias" | "Baleares" | "Ceuta" | "Melilla"
+  mes: string             // "YYYY-MM"
+  descargado: string      // ISO fecha de descarga
+  horas: {
+    datetime: string      // ISO 8601
+    value_eur_kwh: number
+  }[]
+}
+```
+
+## PvpcResult
+
+Resultado de `getPvpcForPeriod()`. Precios medios, mínimos y máximos del PVPC
+para un período dado, con desglose diario.
+
+```typescript
+type PvpcResult = {
+  fecha_inicio: string
+  fecha_fin: string
+  zona: PvpcZona
+  media_eur_kwh: number
+  min_eur_kwh: number
+  max_eur_kwh: number
+  dias: {
+    fecha: string
+    media_eur_kwh: number
+    min_eur_kwh: number
+    max_eur_kwh: number
+  }[]
+}
+```
+
 ## AnalysisResult
 
 Resultado del análisis de `analyzeGasBill()`.
