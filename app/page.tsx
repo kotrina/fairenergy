@@ -3,6 +3,7 @@
 import { useState, useRef, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Nav from "./components/Nav"
+import Footer from "./components/Footer"
 
 type Tab = "factura" | "manual"
 type TipoEnergia = "gas" | "electricidad"
@@ -191,19 +192,7 @@ export default function HomePage() {
         )}
       </section>
 
-      <footer className="border-t border-gray-200 py-6 text-center text-sm text-gray-500">
-        <p>
-          Datos oficiales:{" "}
-          <a href="https://comparador.cnmc.gob.es" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">
-            Comparador CNMC
-          </a>
-          {" · "}
-          <a href="https://api.esios.ree.es" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">
-            ESIOS / REE
-          </a>
-        </p>
-        <p className="mt-1">FairEnergy es independiente y sin ánimo de lucro.</p>
-      </footer>
+      <Footer />
     </main>
   )
 }

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Nav from "../components/Nav"
+import Footer from "../components/Footer"
 
 type GasAnalysisResult = {
   elegible_tur: boolean
@@ -307,6 +308,7 @@ function ResultadoLayout({ verdict, titulo, frase, alertas, ahorroMensual, ahorr
           </Link>
         </div>
       </div>
+      <Footer />
     </main>
   )
 }
@@ -485,6 +487,7 @@ function NoElegible({ razon }: { razon: string | null }) {
           <p className="text-base text-gray-700 leading-relaxed">{razon}</p>
         </div>
       </div>
+      <Footer />
     </main>
   )
 }
