@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Nav from "../components/Nav"
+import Footer from "../components/Footer"
 
 type GasAnalysisResult = {
   elegible_tur: boolean
@@ -39,6 +40,7 @@ type ElectricAnalysisResult = {
   elegible_pvpc: boolean
   razon_no_elegible: string | null
   esta_en_pvpc: boolean
+  precio_usuario_eur_kwh: number | null
   pvpc_referencia: {
     fecha_inicio: string
     fecha_fin: string
@@ -54,15 +56,6 @@ type ElectricAnalysisResult = {
   alertas: string[]
 }
 
-type ElectricBillData = {
-  termino_energia_eur_kwh: number | null
-  termino_potencia_eur_kw_dia: number | null
-  potencia_contratada_kw: number | null
-  consumo_kwh: number | null
-  comercializadora: string | null
-  producto: string | null
-  descuentos: { descripcion: string; porcentaje: number }[]
-}
 
 type Verdict = "verde" | "amarillo" | "rojo"
 
@@ -102,7 +95,6 @@ export default function ResultadoPage() {
   const [gasResult, setGasResult] = useState<GasAnalysisResult | null>(null)
   const [electricResult, setElectricResult] = useState<ElectricAnalysisResult | null>(null)
   const [gasFact, setGasFact] = useState<GasBillData | null>(null)
-  const [electricFact, setElectricFact] = useState<ElectricBillData | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -116,7 +108,6 @@ export default function ResultadoPage() {
         setTipo(tipoEnergia)
         if (tipoEnergia === "electricidad") {
           setElectricResult(JSON.parse(raw) as ElectricAnalysisResult)
-          if (rawFactura) setElectricFact(JSON.parse(rawFactura) as ElectricBillData)
         } else {
           setGasResult(JSON.parse(raw) as GasAnalysisResult)
           if (rawFactura) setGasFact(JSON.parse(rawFactura) as GasBillData)
@@ -139,7 +130,7 @@ export default function ResultadoPage() {
   }
 
   if (tipo === "electricidad" && electricResult) {
-    return <ElectricResultado resultado={electricResult} factura={electricFact} />
+    return <ElectricResultado resultado={electricResult} />
   }
 
   if (gasResult) {
@@ -198,7 +189,7 @@ function GasResultado({ resultado, factura }: { resultado: GasAnalysisResult; fa
 
 // ─── Electricidad ──────────────────────────────────────────────────────────────
 
-function ElectricResultado({ resultado, factura }: { resultado: ElectricAnalysisResult; factura: ElectricBillData | null }) {
+function ElectricResultado({ resultado }: { resultado: ElectricAnalysisResult }) {
   if (!resultado.elegible_pvpc) return <NoElegible razon={resultado.razon_no_elegible} />
 
   const desv = resultado.desviacion_energia_pct
@@ -220,7 +211,7 @@ function ElectricResultado({ resultado, factura }: { resultado: ElectricAnalysis
       ahorroAnual={resultado.ahorro_anual_estimado_eur}
     >
       {pvpc && resultado.esta_en_pvpc && (
-        <PvpcContextCard pvpc={pvpc} tuPrecio={factura?.termino_energia_eur_kwh ?? null} />
+        <PvpcContextCard pvpc={pvpc} tuPrecio={resultado.precio_usuario_eur_kwh} />
       )}
       {pvpc && !resultado.esta_en_pvpc && (
         <CompTable
@@ -228,7 +219,7 @@ function ElectricResultado({ resultado, factura }: { resultado: ElectricAnalysis
           subtitulo={`Precio medio real · ${pvpc.fecha_inicio} → ${pvpc.fecha_fin} · ${pvpc.zona}`}
           rows={[{
             concepto: "Energía (€/kWh)",
-            tuFactura: factura?.termino_energia_eur_kwh?.toFixed(5) ?? "—",
+            tuFactura: resultado.precio_usuario_eur_kwh?.toFixed(5) ?? "—",
             referencia: pvpc.media_eur_kwh.toFixed(5),
             diferencia: desv,
           }]}
@@ -307,6 +298,7 @@ function ResultadoLayout({ verdict, titulo, frase, alertas, ahorroMensual, ahorr
           </Link>
         </div>
       </div>
+      <Footer />
     </main>
   )
 }
@@ -485,6 +477,7 @@ function NoElegible({ razon }: { razon: string | null }) {
           <p className="text-base text-gray-700 leading-relaxed">{razon}</p>
         </div>
       </div>
+      <Footer />
     </main>
   )
 }

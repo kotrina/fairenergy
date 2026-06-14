@@ -2,7 +2,9 @@
 
 import { useState, useRef, FormEvent } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import Nav from "./components/Nav"
+import Footer from "./components/Footer"
 
 type Tab = "factura" | "manual"
 type TipoEnergia = "gas" | "electricidad"
@@ -90,6 +92,15 @@ export default function HomePage() {
         <p className="text-lg text-gray-600 max-w-md mx-auto leading-relaxed">
           Sube tu factura y en segundos sabrás cuánto puedes ahorrar,
           en euros y sin tecnicismos.
+        </p>
+        <p className="mt-4">
+          <Link
+            href="/como-funciona"
+            className="text-sm font-medium underline-offset-2 hover:underline"
+            style={{ color: "#378ADD" }}
+          >
+            ¿Cómo lo hacemos? Te lo explicamos con transparencia →
+          </Link>
         </p>
       </section>
 
@@ -191,19 +202,7 @@ export default function HomePage() {
         )}
       </section>
 
-      <footer className="border-t border-gray-200 py-6 text-center text-sm text-gray-500">
-        <p>
-          Datos oficiales:{" "}
-          <a href="https://comparador.cnmc.gob.es" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">
-            Comparador CNMC
-          </a>
-          {" · "}
-          <a href="https://api.esios.ree.es" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-700">
-            ESIOS / REE
-          </a>
-        </p>
-        <p className="mt-1">FairEnergy es independiente y sin ánimo de lucro.</p>
-      </footer>
+      <Footer />
     </main>
   )
 }
