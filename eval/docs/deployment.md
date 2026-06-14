@@ -8,6 +8,14 @@
 |---|---|---|
 | `ANTHROPIC_API_KEY` | API key de Anthropic para OCR con Claude | Sí |
 | `ESIOS_API_KEY` | Token ESIOS de REE para precios PVPC (electricidad) | Sí (electricidad) |
+| `SUPABASE_URL` | URL del proyecto Supabase (analytics anónimos) | Sí (analytics) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave secreta de servidor de Supabase (no la pública) | Sí (analytics) |
+| `UPSTASH_REDIS_REST_URL` | URL REST de Upstash Redis (rate limiting) | Recomendada |
+| `UPSTASH_REDIS_REST_TOKEN` | Token REST de Upstash Redis (rate limiting) | Recomendada |
+
+> Si las variables de Upstash no están definidas, el rate limiting se desactiva
+> de forma segura (no bloquea peticiones). Conviene configurarlas antes de abrir
+> el acceso a usuarios externos.
 
 ## Vercel
 
