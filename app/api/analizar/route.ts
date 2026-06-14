@@ -75,7 +75,7 @@ async function handleElectric(billData: ElectricBillData) {
   await registrarAnalisis({
     tipo_energia: "electricidad",
     mercado_libre: !resultado.esta_en_pvpc,
-    precio_usuario_eur_kwh: billData.termino_energia_eur_kwh,
+    precio_usuario_eur_kwh: resultado.precio_usuario_eur_kwh,
     precio_referencia_eur_kwh: pvpcData?.media_eur_kwh ?? null,
     desviacion_pct: resultado.desviacion_energia_pct,
     ahorro_mensual_eur: resultado.ahorro_mensual_estimado_eur,
