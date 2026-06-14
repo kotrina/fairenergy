@@ -6,9 +6,14 @@ import { extractElectricBillData, type ElectricBillData } from "../../../lib/ocr
 import { analyzeElectricBill } from "../../../lib/analyzer-electric"
 import { getPvpcForPeriod } from "../../../lib/pvpc"
 import { getSupabaseServer } from "../../../lib/supabase-server"
+import { comprobarLimitePorIP, comprobarYRegistrarGlobal, type RateLimitResultado } from "../../../lib/ratelimit"
 
 export async function POST(request: NextRequest) {
   try {
+    // Capa 1 — límite por IP (barato, antes de procesar nada).
+    const limiteIP = await comprobarLimitePorIP(obtenerIP(request))
+    if (!limiteIP.permitido) return respuestaLimite(limiteIP)
+
     const contentType = request.headers.get("content-type") ?? ""
 
     if (contentType.includes("multipart/form-data")) {
@@ -23,6 +28,10 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      // Capa 2 — tope global diario (solo al ir a hacer trabajo real).
+      const limiteGlobal = await comprobarYRegistrarGlobal()
+      if (!limiteGlobal.permitido) return respuestaLimite(limiteGlobal)
+
       if (tipoEnergia === "electricidad") {
         const billData = await extractElectricBillData(factura)
         return await handleElectric(billData)
@@ -36,6 +45,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json() as { tipo_energia?: string } & (BillData | ElectricBillData)
     const tipoEnergia = body.tipo_energia ?? "gas"
 
+    const limiteGlobal = await comprobarYRegistrarGlobal()
+    if (!limiteGlobal.permitido) return respuestaLimite(limiteGlobal)
+
     if (tipoEnergia === "electricidad") {
       return await handleElectric(body as ElectricBillData)
     }
@@ -45,6 +57,15 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Error desconocido"
     return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
+}
+
+function obtenerIP(request: NextRequest): string {
+  const fwd = request.headers.get("x-forwarded-for")
+  return fwd?.split(",")[0]?.trim() || "desconocida"
+}
+
+function respuestaLimite(limite: Extract<RateLimitResultado, { permitido: false }>) {
+  return NextResponse.json({ success: false, error: limite.mensaje }, { status: limite.status })
 }
 
 async function handleGas(billData: BillData) {
