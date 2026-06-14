@@ -2,6 +2,7 @@
 
 import { useState, useRef, FormEvent } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import Nav from "./components/Nav"
 import Footer from "./components/Footer"
 
@@ -91,6 +92,15 @@ export default function HomePage() {
         <p className="text-lg text-gray-600 max-w-md mx-auto leading-relaxed">
           Sube tu factura y en segundos sabrás cuánto puedes ahorrar,
           en euros y sin tecnicismos.
+        </p>
+        <p className="mt-4">
+          <Link
+            href="/como-funciona"
+            className="text-sm font-medium underline-offset-2 hover:underline"
+            style={{ color: "#378ADD" }}
+          >
+            ¿Cómo lo hacemos? Te lo explicamos con transparencia →
+          </Link>
         </p>
       </section>
 
