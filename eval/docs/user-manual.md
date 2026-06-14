@@ -1,6 +1,6 @@
 # Manual de usuario — FairEnergy
 
-Última actualización: 2026-05-17
+Última actualización: 2026-06-14
 
 ## ¿Qué es FairEnergy?
 
@@ -59,3 +59,20 @@ También verás:
 
 > El cambio a la Tarifa de Último Recurso es **gratuito** y puedes solicitarlo
 > por teléfono a tu comercializadora de referencia.
+
+## Cómo funciona (transparencia)
+
+La página **Cómo funciona** explica de forma transparente todo el proceso: cómo se
+extraen los datos de tu factura, con qué tarifa oficial se comparan, de dónde sale la
+información y qué garantías de privacidad ofrecemos.
+
+Es accesible desde el enlace **"Cómo funciona"** del encabezado (visible en todas las
+páginas), desde el enlace bajo el texto principal de la página de inicio y desde el pie
+de página.
+
+La página cubre:
+- Los pasos del análisis (subida, extracción con IA, comparación y cálculo del ahorro).
+- Las tarifas de referencia: PVPC para electricidad (datos de ESIOS/REE) y TUR para gas
+  (publicada en el BOE).
+- Las fuentes oficiales utilizadas, con enlaces.
+- Las garantías de privacidad y las limitaciones honestas del cálculo.

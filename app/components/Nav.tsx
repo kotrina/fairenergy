@@ -10,7 +10,7 @@ export default function Nav({ back }: { back?: boolean }) {
         <BoltIcon />
       </div>
       <span className="text-lg font-semibold text-gray-900">FairEnergy</span>
-      {back && (
+      {back ? (
         <Link
           href="/"
           className="ml-auto flex items-center gap-1 text-sm font-medium"
@@ -18,6 +18,14 @@ export default function Nav({ back }: { back?: boolean }) {
         >
           <ArrowLeftIcon />
           Analizar otra factura
+        </Link>
+      ) : (
+        <Link
+          href="/como-funciona"
+          className="ml-auto text-sm font-medium"
+          style={{ color: "#378ADD" }}
+        >
+          Cómo funciona
         </Link>
       )}
     </nav>

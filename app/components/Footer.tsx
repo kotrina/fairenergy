@@ -25,6 +25,9 @@ export default function Footer() {
       </p>
       <p className="mt-1">FairEnergy es independiente y sin ánimo de lucro.</p>
       <p className="mt-3 flex justify-center gap-4 flex-wrap">
+        <Link href="/como-funciona" className="underline hover:text-gray-700">
+          Cómo funciona
+        </Link>
         <Link href="/aviso-legal" className="underline hover:text-gray-700">
           Aviso legal
         </Link>
