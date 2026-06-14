@@ -1,6 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk"
 import { AI_MODEL, AI_MAX_TOKENS } from "../config/ai"
 
+export type EnergiaPeriodo = {
+  periodo: "punta" | "llano" | "valle"
+  precio_eur_kwh: number | null
+  consumo_kwh: number | null
+}
+
 export type ElectricBillData = {
   comercializadora: string | null
   producto: string | null
@@ -12,6 +18,7 @@ export type ElectricBillData = {
   potencia_contratada_kw: number | null
   termino_potencia_eur_kw_dia: number | null
   termino_energia_eur_kwh: number | null
+  energia_periodos: EnergiaPeriodo[]
   importe_total: number | null
   descuentos: { descripcion: string; porcentaje: number }[]
 }
@@ -24,8 +31,13 @@ Si un campo no aparece en la factura, devuélvelo como null.
 
 Notas importantes:
 - "es_mercado_libre": true si la tarifa es de mercado libre; false si es PVPC o tarifa regulada.
-- "termino_energia_eur_kwh": el precio unitario que paga por cada kWh consumido (excl. impuestos).
-  Si aparecen distintos precios por período (punta/llano/valle), usa la media ponderada.
+- IMPORTANTE — precio de la energía. NO calcules medias ni hagas operaciones aritméticas.
+  Limítate a COPIAR los números que aparecen en la factura:
+  - Si la factura tiene discriminación horaria (tarifa 2.0TD con períodos punta/llano/valle),
+    rellena "energia_periodos" con un objeto por cada período, copiando su precio (€/kWh) y su
+    consumo (kWh) tal como figuran en la factura. En ese caso deja "termino_energia_eur_kwh" en null.
+  - Si la factura tiene un único precio de energía (sin discriminación horaria), rellena
+    "termino_energia_eur_kwh" con ese precio y deja "energia_periodos" como array vacío [].
 - "termino_potencia_eur_kw_dia": coste diario por kW de potencia contratada.
 - "potencia_contratada_kw": la potencia contratada total (P1 o suma P1+P2 si aparece).
 - "descuentos": lista de descuentos aplicados con su porcentaje. Array vacío si no hay ninguno.
@@ -41,7 +53,8 @@ Campos a extraer:
   "consumo_kwh": number,
   "potencia_contratada_kw": number,
   "termino_potencia_eur_kw_dia": number,
-  "termino_energia_eur_kwh": number,
+  "termino_energia_eur_kwh": number | null,
+  "energia_periodos": [{ "periodo": "punta" | "llano" | "valle", "precio_eur_kwh": number, "consumo_kwh": number }],
   "importe_total": number,
   "descuentos": [{ "descripcion": string, "porcentaje": number }]
 }`
@@ -78,5 +91,7 @@ export async function extractElectricBillData(file: File): Promise<ElectricBillD
   if (!textBlock || textBlock.type !== "text") throw new Error("La IA no devolvió texto")
 
   const raw = textBlock.text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
-  return JSON.parse(raw) as ElectricBillData
+  const parsed = JSON.parse(raw) as ElectricBillData
+  if (!Array.isArray(parsed.energia_periodos)) parsed.energia_periodos = []
+  return parsed
 }

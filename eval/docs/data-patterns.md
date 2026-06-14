@@ -80,6 +80,35 @@ type PvpcResult = {
 }
 ```
 
+## EnergiaPeriodo (electricidad)
+
+Desglose por período horario de una factura de electricidad con discriminación
+horaria (tarifa 2.0TD). El OCR **copia** estos valores de la factura sin calcular
+medias; la media ponderada se calcula después en código.
+
+```typescript
+type EnergiaPeriodo = {
+  periodo: "punta" | "llano" | "valle"
+  precio_eur_kwh: number | null
+  consumo_kwh: number | null
+}
+```
+
+`ElectricBillData` incluye `energia_periodos: EnergiaPeriodo[]` (array vacío si la
+factura tiene un único precio, en cuyo caso se usa `termino_energia_eur_kwh`).
+
+### Cálculo del precio efectivo — `precioEnergiaPonderado()`
+
+Define el precio €/kWh real que paga el usuario, por orden de preferencia:
+
+1. **Media ponderada por consumo** de los períodos con precio y consumo:
+   `Σ(precio_i × consumo_i) / Σ(consumo_i)`.
+2. **Media simple** de los precios por período (si hay precios pero no consumos).
+3. `termino_energia_eur_kwh` (factura de precio único, p. ej. entrada manual).
+
+Se expone en `ElectricAnalysisResult.precio_usuario_eur_kwh` y es el valor que se
+compara con el PVPC, se muestra en la tabla del resultado y se registra en analytics.
+
 ## AnalysisResult
 
 Resultado del análisis de `analyzeGasBill()`.
